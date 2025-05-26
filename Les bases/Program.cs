@@ -12,7 +12,7 @@ builder.Services.AddSingleton<ArticleService>();       // Nous enregistrons le s
                                                        // Permet de n'avoir qu'une seule instance du service "ArticleService", permettant ainsi d'ajouter les nouveaux articles dans la même instance quand bien même noous avons le mot "new Article" dans la méthode Add de la classe ArticleService.
                                                        // Ce singleton est donc partagé par tous les Endpoints
 
-WebApplication? app = builder.Build(); 
+WebApplication? app = builder.Build();
 
 
 
