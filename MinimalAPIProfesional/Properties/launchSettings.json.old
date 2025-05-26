@@ -1,0 +1,68 @@
+{
+     "profiles": {
+          "MinimalAPIProfesional": {
+               "Run (dev)": {
+                    "commandName": "Project",
+                    "environmentVariables": {
+                         "ASPNETCORE_ENVIRONMENT": "Development"
+                    },
+                    "applicationUrl": "http://localhost:55577"
+               },
+               "Run (prod)": {
+                    "commandName": "Project",
+                    "environmentVariables": {
+                         "ASPNETCORE_ENVIRONMENT": "Production"
+                    },
+                    "applicationUrl": "http://localhost:55588"
+               }
+          }
+     }
+}
+
+==================================================================================
+{
+     "profiles": {
+          "MinimalAPIProfesional_d": {
+               "commandName": "Project",
+               "applicationUrl": "http://localhost:5555",
+               "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Development"
+               }
+          },
+
+
+          "MinimalAPIProfesional_i": {
+               "commandName": "Project",
+               "applicationUrl": "http://localhost:6666",
+               "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Integration"
+               }
+          },
+
+          "MinimalAPIProfesional_q": {
+               "commandName": "Project",
+               "applicationUrl": "http://localhost:7777",
+               "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Qualification"
+               }
+          },
+
+
+          "MinimalAPIProfesional_pp": {
+               "commandName": "Project",
+               "applicationUrl": "http://localhost:8888",
+               "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Preproduction"
+               }
+          },
+
+
+          "MinimalAPIProfesional_p": {
+               "commandName": "Project",
+               "applicationUrl": "http://localhost:9999",
+               "environmentVariables": {
+                    "ASPNETCORE_ENVIRONMENT": "Production"
+               }
+          }
+     }
+}

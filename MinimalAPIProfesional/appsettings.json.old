@@ -1,0 +1,6 @@
+{
+     "ConnectionStrings": {
+          "SqLite-DEVELOPMENT":         "Filename=api_d.db",
+          "DistCache_ConnectionString": "Data Source = localhost; Initial Catalog = DistCache; Trusted_Connection = True; Trust Server Certificate = true; Integrated Security = true; MultipleActiveResultSets = true",
+     }
+}
