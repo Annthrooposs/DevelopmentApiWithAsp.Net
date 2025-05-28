@@ -60,14 +60,14 @@ namespace MinimalAPIProfesional.Services
           // MapGET ---------------------------------------------------------------------------------------------------------------------------------
           public async Task<List<PersonOutputModel>> GetAll()
           {
-               return (await _context.Persons.ToListAsync()).ConvertAll(ToOutputModel);
+               return (await _context.PersonTable.ToListAsync()).ConvertAll(ToOutputModel);
           }
 
 
 
           public async Task<PersonOutputModel?> GetById(int p_id)
           {
-               Person? dbPersonn = await _context.Persons.Where(w => w.Id == p_id).FirstOrDefaultAsync();
+               Person? dbPersonn = await _context.PersonTable.Where(w => w.Id == p_id).FirstOrDefaultAsync();
 
                if (dbPersonn is not null)
                {
@@ -91,7 +91,7 @@ namespace MinimalAPIProfesional.Services
                     Birthday  = p_person.Birthday.GetValueOrDefault()
                };
                
-                         _context.Persons.Add(dbPerson);
+                         _context.PersonTable.Add(dbPerson);
                await     _context.SaveChangesAsync();
 
                return ToOutputModel(dbPerson);
@@ -102,7 +102,7 @@ namespace MinimalAPIProfesional.Services
           // MapPUT ---------------------------------------------------------------------------------------------------------------------------------
           public async Task<bool> Update(int p_id, PersonnInputModel p_person)
           {
-               return await _context.Persons
+               return await _context.PersonTable
                                    .Where(w => w.Id == p_id)
                                    .ExecuteUpdateAsync(eua => eua.SetProperty(sp => sp.FirstName, p_person.FirstName)
                                                                  .SetProperty(sp => sp.LastName, p_person.LastName)
@@ -129,7 +129,7 @@ namespace MinimalAPIProfesional.Services
           // MapDELETE ------------------------------------------------------------------------------------------------------------------------------
           public async Task<bool> Delete(int p_id)
           {
-               return await _context.Persons.Where(w => w.Id == p_id).ExecuteDeleteAsync() > 0;
+               return await _context.PersonTable.Where(w => w.Id == p_id).ExecuteDeleteAsync() > 0;
           }
      }
 }

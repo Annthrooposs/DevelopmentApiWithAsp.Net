@@ -1,12 +1,17 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Serilog;                                         //  .WriteTo.File / LoggerConfiguration 
+﻿using System.ComponentModel.DataAnnotations;
+using System.Threading;
+
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.OutputCaching;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+
 using FluentValidation;                                // Services.AddValidatorsFromAssemblyContaining
 using FluentValidation.Results;                        // ValidationResult
-using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.AspNetCore.OutputCaching;
-using Microsoft.Extensions.Caching.Distributed;
+
+using Serilog;                                         //  .WriteTo.File / LoggerConfiguration 
+using Serilog.Core;
 
 using MinimalAPIProfesional;
 using MinimalAPIProfesional.Validation;
@@ -14,17 +19,15 @@ using MinimalAPIProfesional.Data.Models;
 using MinimalAPIProfesional.Data;                      // ApiDbContext
 using MinimalAPIProfesional.Services;
 using MinimalAPIProfesional.DTO___Models;
-using MinimalAPIProfesional.Endpoints; 
-using Serilog.Core;
-using System.Threading;
+using MinimalAPIProfesional.Endpoints;
 
 
-// ==================================================================================================================================================
-//                                                                                                                                                  !
-//                                                                Construction                                                                      !
-//                                                                                                                                                  !
-// ==================================================================================================================================================
-// Creating the WebApplicationBuilder factory class -------------------------------------------------------------------------------------------------
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                                                         Construction                                                                                               !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+// Creating the WebApplicationBuilder factory class ---------------------------------------------------------------------------------------------------------------------------------------------------
 WebApplicationBuilder? builder  = WebApplication.CreateBuilder(args);
 //var builder = WebApplication.CreateBuilder(new WebApplicationOptions
 //{
@@ -33,7 +36,7 @@ WebApplicationBuilder? builder  = WebApplication.CreateBuilder(args);
 
 
 
-// Registering and configuring services -------------------------------------------------------------------------------------------------------------
+// Registering and configuring services ---------------------------------------------------------------------------------------------------------------------------------------------------------------
 builder.Logging.ClearProviders();                                                              // Supprime le système de Logging qu'Asp.Net a mis par défaut
 
 LoggerConfiguration? loggerConfiguration = new LoggerConfiguration()                           // Création d'une configuration de log destinée à Serilog
@@ -46,17 +49,17 @@ builder.Logging.AddSerilog(logger);
 
 
 
-// enregistrement des validators --------------------------------------------------------------------------------------------------------------------
+// enregistrement des validators ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 
-//// Cache mémoire manuel -----------------------------------------------------------------------------------------------------------------------------
+//// Cache mémoire manuel -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddMemoryCache();
 
 
 
-//// Output Cache -------------------------------------------------------------------------------------------------------------------------------------
+//// Output Cache -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddOutputCache(opt =>
 //{
 //     opt.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(1)));                                // Stratégie par défaut
@@ -79,7 +82,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 
-// Distributed Cache --------------------------------------------------------------------------------------------------------------------------------
+// Distributed Cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 builder.Services.AddDistributedSqlServerCache(options =>
 {
      options.ConnectionString = builder.Configuration.GetConnectionString("DistribCache_ConnectionString");
@@ -89,14 +92,14 @@ builder.Services.AddDistributedSqlServerCache(options =>
 
 
 
-// Enregistrement du contexte de la base de données -------------------------------------------------------------------------------------------------
-////builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlite(builder.Configuration.GetConnectionString("SqLite-DEVELOPMENT")));
+// Enregistrement du contexte de la base de données ---------------------------------------------------------------------------------------------------------------------------------------------------
+//builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlite(builder.Configuration.GetConnectionString("SqLite-DEVELOPMENT")));
 builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer_DEVELOPMENT")));
-////builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer_PRODUCTION")));
+//builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer_PRODUCTION")));
 
 
 
-// Enregistrement des Services ----------------------------------------------------------------------------------------------------------------------
+// Enregistrement des Services ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddScoped<IPersonService, EFCorePersonService>();    // Précise l'interface "IPersonService" et son implémentation à utiliser "EFCorePersonService"
 //                                                                      //
 //                                                                      // "AddScoped", en ASP.NET Web API, permet de dire que la durée de vie
@@ -120,12 +123,12 @@ builder.Services.AddSwaggerGen();                                     // Service
 
 
 
-// Building the WebApplication object ---------------------------------------------------------------------------------------------------------------
+// Building the WebApplication object -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 var app = builder.Build();
 
 
 
-// Génération du fichier swagger.json et de l'interface graphique exposant le fichier----------------------------------------------------------------
+// Génération du fichier swagger.json et de l'interface graphique exposant le fichier------------------------------------------------------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
      app.UseSwagger();                                                // Génère le fichier Swagger.json nécessaire pour les clients voulant consommer l'API
@@ -136,11 +139,11 @@ if (app.Environment.IsDevelopment())
 
 
 
-// ==================================================================================================================================================
-//                                                                                                                                                  !
-//                                                     Appel de Services et Middlewares                                                             !
-//                                                                                                                                                  !
-// ==================================================================================================================================================
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                                              Appel de Services et Middlewares                                                                                      !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
 // Appel des Services -------------------------------------------------------------------------------------------------------------------------------
 //// Création de la base de données si elle n'existe pas : !!!!! A ne pas faire en Production car nous ne profiterions plus du système de "Migration" pour faire évoluer la base !!!!!
 //app.Services
@@ -150,55 +153,62 @@ if (app.Environment.IsDevelopment())
 
 
 
-// Checks whether there is a migration to be applied and does so if necessary -----------------------------------------------------------------------
-await app.Services
-     .CreateScope().ServiceProvider
-     .GetRequiredService<ApiDbContext>().Database
-     //.ensureCreated();
-     .MigrateAsync();
+//// Checks whether there is a migration to be applied and does so if necessary -----------------------------------------------------------------------------------------------------------------------
+//await app.Services
+//     .CreateScope().ServiceProvider
+//     .GetRequiredService<ApiDbContext>().Database
+//     //.ensureCreated();
+//     .MigrateAsync();
 
 
 
-//// Appel des Middlewares ----------------------------------------------------------------------------------------------------------------------------
+//// Appel des Middlewares ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //// Déclaration de l'utilisation du cache automatique
 //app.UseOutputCache();
 
 
 
-// Regroupent des Endpoints concernant les "Person" -------------------------------------------------------------------------------------------------
-app.MapGroup("/person")
-     .MapPersonEndpoints();
+//// Regroupent des Endpoints concernant les "Person" -------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapGroup("/person")
+//     .MapPersonEndpoints();
 
 
 
 
 
-//// ==================================================================================================================================================
-////                                                                                                                                                  !
-////                                                                 Endpoints GET                                                                    !
-////                                                                                                                                                  !
-//// ==================================================================================================================================================
-//#region hello
-////app.MapGet("/hello", (
-////     [FromServices]      ILogger<Program> logger) =>
-////{
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                                                          Endpoints GET                                                                                             !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+#region hello
+//app.MapGet("/hello",
+//(
+//     [FromServices] ILogger<Program> logger
+//) =>
+//{
 
-////     logger.LogInformation("Log depuis l'Endpoint Hello");
-////     return Results.Ok("Hello World!");
-////});
+//     logger.LogInformation("Log depuis l'Endpoint Hello");
+//     return Results.Ok("Hello World!");
+//});
 
 
 
-////app.MapGet("/hello/{p_nom}", (
-////     [FromRoute]         string p_nom,
-////     [FromServices]      ILogger<Program> logger) =>
-////{
+//app.MapGet("/hello/{p_nom}",
+//(
+//     [FromRoute]    string              p_nom,
+//     [FromServices] ILogger<Program>    logger
+//) =>
+//{
 
-////     logger.LogInformation("Nous avons salué {p_nom}", p_nom);                                                                                        // Log avec Templating
-////     return Results.Ok($"Bonjour {p_nom}");
-////});
-//#endregion
+//     logger.LogInformation("Nous avons salué {p_nom}", p_nom);                                                                                        // Log avec Templating
+//     return Results.Ok($"Bonjour {p_nom}");
+//});
+#endregion
 
+
+
+#region person 1er lot
 ////app.MapGet("/person", async (
 ////     [FromServices] ApiDbContext context) =>
 ////{
@@ -207,9 +217,11 @@ app.MapGroup("/person")
 
 ////     return Results.Ok(lp);
 ////});
+#endregion
 
 
 
+#region validations en entrée
 ////app.MapGet("/person/{id:int}", async (
 ////     [FromRoute]    int            id,
 
@@ -222,9 +234,51 @@ app.MapGroup("/person")
 
 ////     return Results.Ok(pers);
 ////});
+#endregion
 
 
 
+#region avec base de données sans filtre
+// Avec memory cache manuel ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapGet("/person", async
+(
+     [FromServices] ApiDbContext        context,
+
+                    CancellationToken   token
+) =>
+{
+
+     List<Person> person = await context.PersonTable.ToListAsync(token);
+     return Results.Ok(person);
+});
+#endregion
+
+
+
+#region avec base de données avec un filtre
+// Avec memory cache manuel ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapGet("/person/{id:int}", async
+(
+     [FromRoute]         int                 id,
+
+     [FromServices]      ApiDbContext        context,
+
+                         CancellationToken   token
+) =>
+{
+
+     //Person p = await context.Persons.Where(w => w.Id == id).ToList();
+     Person p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync(token);
+
+          if (p is null) return Results.NotFound();
+
+               return Results.Ok(p);
+});
+#endregion
+
+
+
+#region avec injection de dépendance de services
 ////// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
 ////app.MapGet("/person", async
 ////     ([FromServices] IPersonService iService) =>
@@ -233,9 +287,12 @@ app.MapGroup("/person")
 ////     return Results.Ok(p);
 ////})
 ////     .WithTags("PersonManagement");
+///
+#endregion
 
 
 
+#region avec memory cache manuel
 ////// Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
 ////app.MapGet("/person/{id:int}", async
 ////     ([FromRoute]   int            id,
@@ -267,9 +324,11 @@ app.MapGroup("/person")
 ////          }
 ////     }
 ////});
+#endregion
 
 
 
+#region avec output cache automatique
 ////// Avec Output cache automatique --------------------------------------------------------------------------------------------------------------------
 ////app.MapGet("/person", [OutputCache(PolicyName = "Expire2M")] async (
 ////     [FromServices] ApiDbContext context) =>
@@ -301,9 +360,11 @@ app.MapGroup("/person")
 ////     }
 ////})
 ////.CacheOutput("ById");
+#endregion
 
 
 
+#region avec distributed memory cache
 ////// Avec Distributed Memory Cache --------------------------------------------------------------------------------------------------------------------
 ////app.MapGet("/person/{id:int}", async (
 ////     [FromRoute]    int                 id,
@@ -333,9 +394,11 @@ app.MapGroup("/person")
 ////               return Results.Ok(p);
 ////          }
 ////     });
+#endregion
 
 
 
+#region avec injection de dépendance de services
 //// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
 //app.MapGet("/person", async (
 //     //[FromServices] IDistributedCache cache,
@@ -396,86 +459,105 @@ app.MapGroup("/person")
 //          //}
 //     })
 //     .WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+#endregion
 
 
 
 
 
-//// ==================================================================================================================================================
-////                                                                                                                                                  !
-////                                                                Endpoints POST                                                                    !
-////                                                                                                                                                  !
-//// ==================================================================================================================================================
-////app.MapPost("/person", (
-////[FromBody] Person p) =>
-////{
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                                                         Endpoints POST                                                                                             !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+#region validation 'à la main'
+// Validation 'à la main' ---------------------------------------------------------------------------------------------------------------------------
+//app.MapPost("/person",
+//(
+//     [FromBody] Person p
+//) =>
+//{
 
-////     if (string.IsNullOrWhiteSpace(p.FirstName)) return Results.BadRequest("Le prénom est requis");
-////     if (string.IsNullOrWhiteSpace(p.LastName)) return Results.BadRequest("Le nom est requis");
+//     if (string.IsNullOrWhiteSpace(p.FirstName))  return Results.BadRequest("Le prénom est requis");
+//     if (string.IsNullOrWhiteSpace(p.LastName))   return Results.BadRequest("Le nom est requis");
 
-////     return Results.Ok(p);
-////});
-
-
-////app.MapPost("/person", (
-////     [FromBody]          PersonnInputModel p,
-////     [FromServices]      IValidator<PersonnInputModel> validator) =>
-////     {
-
-////          //var result = validator.Validate(p);
-////          FluentValidation.Results.ValidationResult result = validator.Validate(p);
-
-////          if (!result.IsValid)
-////          {
-////               //return Results.BadRequest(result.Errors);
-////               return Results.BadRequest(result.Errors.Select(e => new
-////               {
-////                    Message = e.ErrorMessage,
-////                    //PropertyName = e.PropertyName
-////                    e.PropertyName
-////               }));
-////          }
-
-////               return Results.Ok(p);
-////     });
-
-
-////// Avec utilisation d'une base de données ---------------------------------------------------------------------------------------------------------------------
-////app.MapPost("/person", async (
-////     [FromBody]     Person              p,
-
-////     [FromServices] IValidator<Person>  validator,
-////     [FromServices] ApiDbContext        context,
-////     [FromServices] IDistributedCache   cache,
-
-////     CancellationToken                  token) =>
-////{
-
-////     FluentValidation.Results.ValidationResult result = validator.Validate(p);
-
-////     if (!result.IsValid)
-////     {
-////          return Results.BadRequest(result.Errors.Select(e => new
-////          {
-////               Message        = e.ErrorMessage,
-////               PropertyName   = e.PropertyName,
-////               Severity       = e.Severity
-////          }));
-////     }
-////     else
-////     {
-////          await context.Persons.AddAsync(p); ;
-////          await context.SaveChangesAsync(token);
-
-////          //await cache.SetAsync($"personne_{p.Id}", p);                                 // Je stocke la Person dans le cache
-////          return Results.Ok(p);
-////     }
-////     //if (string.IsNullOrEmpty(p.LastName)) return Results.BadRequest("Le nome est requis");
-////     //if (string.IsNullOrEmpty(p.FirstName)) return Results.BadRequest("Le prénome est requis");
-////});
+//     return Results.Ok(p);
+//});
+#endregion
 
 
 
+#region validation avec FluentValidation
+// Validation avec FluentValidation -----------------------------------------------------------------------------------------------------------------
+//app.MapPost("/person",
+//(
+//     [FromBody]          PersonnInputModel                  p,
+//     [FromServices]      IValidator<PersonnInputModel>      validator
+//) =>
+//{
+
+//     //var result = validator.Validate(p);
+//     FluentValidation.Results.ValidationResult result = validator.Validate(p);
+
+//     if (!result.IsValid)
+//     {
+
+//          //     return Results.BadRequest(result.Errors);                                                                                            // Pour retourner l'erreur complète. Adaptée à une API privée ou interne
+//          //};
+//          return Results.BadRequest(result.Errors.Select(e => new                                                                                     // Pour retourner une erreur plus simple, adaptée à une API publique ou externe
+//          {
+
+//               Message = e.ErrorMessage,
+//               //PropertyName = e.PropertyName
+//               e.PropertyName
+//          }));
+//     }
+
+//     return Results.Ok(p);
+//});
+#endregion
+
+
+
+#region avec une base de données
+// Avec utilisation d'une base de données -------------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapPost("/person", async
+(
+     [FromBody]     Person                   p,
+
+     [FromServices] IValidator<Person>       validator,
+     [FromServices] ApiDbContext             context,
+     [FromServices] IDistributedCache        cache,
+
+                    CancellationToken        token
+) =>
+{
+
+     FluentValidation.Results.ValidationResult result = validator.Validate(p);
+
+     if (!result.IsValid)
+     {
+          return Results.BadRequest(result.Errors.Select(e => new
+          {
+               Message        = e.ErrorMessage,
+               PropertyName   = e.PropertyName,
+               Severity       = e.Severity
+          }));
+     }
+     else
+     {
+          await context.PersonTable.AddAsync(p, token); ;
+          await context.SaveChangesAsync(token);
+
+          //await cache.SetAsync($"personne_{p.Id}", p);                                 // Je stocke la Person dans le cache
+          return Results.Ok(p);
+     }
+});
+#endregion
+
+
+
+#region Injection de dépendance de services
 //// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
 //app.MapPost("/person", async (
 //     [FromBody]     PersonnInputModel             p,
@@ -510,54 +592,84 @@ app.MapGroup("/person")
 //     .Accepts<PersonnInputModel>(contentType: "application/json")                                   // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
 //     .Produces<PersonOutputModel>(contentType: "application/json")                                  // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
 //     .WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+#endregion
 
 
 
 
 
-//// ==================================================================================================================================================
-////                                                                                                                                                  !
-////                                                                 Endpoints PUT                                                                    !
-////                                                                                                                                                  !
-//// ==================================================================================================================================================
-////// Approche historique : nous récupérons l'object en mémoire avant de le modifier puis de le renvoyer à la base de données
-////app.MapPut("/person/{id:int}",
-////     ([FromRoute]   int            id,
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+////                                                                                         Endpoints PUT                                                                                            !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+#region En base de données - Approche historique et moderne
+// Approche historique : nous récupérons l'object en mémoire avant de le modifier puis de le renvoyer à la base de données
+//app.MapPut("/person/{id:int}",
+//(
+//     [FromRoute]         int            id,
 
-////     [FromBody]     Person         p,
+//     [FromBody]          Person         p,
 
-////     [FromServices] ApiDbContext   context) =>
-////{
+//     [FromServices]      ApiDbContext   context
+//) =>
+//{
 
-////     var result = context.Persons.Where(w => w.Id == id).FirstOrDefault();
-
-
-////     if (result is not null)
-////     {
-
-////          result.FirstName = result.FirstName + " " + p.FirstName;
-////          //result.LastName     = p.LastName;
-
-////          context.Persons.Update(p);
-////          context.SaveChanges();
-
-////          return Results.Ok(p);
-////     }
-////     else
-////     {
-
-////          return Results.NotFound();
-////     }
-////});
-
-////// ou
-//////
-/////// ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
-////    (donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
-////    ~ équivalent à une procédure stockée)
+//     var result = context.PersonTable.Where(w => w.Id == id).FirstOrDefault();
 
 
+//     if (result is not null)
+//     {
 
+//          result.FirstName    = result.FirstName;
+//          result.LastName     = p.LastName;
+
+//          context.PersonTable.Update(p);                                                               // Optionnel. Je le mets comme parachute de secours pour remédier à une défaillance quelconque du Change tracker (si jamais il n'a pas été mis à jour par le Change Tracker d'Entity Framework Core)
+//          context.SaveChanges();
+
+//          return Results.Ok(p);
+//     }
+//     else
+//     {
+
+//          return Results.NotFound();
+//     }
+//});
+
+// ou
+//
+// ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
+//(donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
+//    ~ équivalent à une procédure stockée)
+app.MapPut("/person/{id:int}", async
+(
+     [FromRoute]    int                 id,
+
+     [FromBody]     Person              p,
+
+     [FromServices] ApiDbContext        context,
+
+                    CancellationToken   token
+) =>
+{
+
+     var result = await context.PersonTable
+                    .Where(w => w.Id == id)
+                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)             // ExecuteUpdateAsync est une méthode d'Entity Framework Core qui permet de mettre à jour en masse sans charger les entités en mémoire
+                                                  .SetProperty(pers => pers.FirstName, p.FirstName), token);
+
+
+
+     if (result > 0) return Results.NoContent();
+
+     return Results.NotFound();
+});
+
+#endregion
+
+
+
+#region avec memory cache manuel
 ////// Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
 ////app.MapPut("/person/{id:int}", async
 ////     ([FromRoute]   int            id,
@@ -585,9 +697,11 @@ app.MapGroup("/person")
 ////          return Results.NotFound();
 ////     }
 ////});
+#endregion
 
 
 
+#region avec output cache automatique
 ////// Avec Output cache --------------------------------------------------------------------------------------------------------------------------------
 ////app.MapPut("/person/{id:int}", async
 ////     ([FromRoute]   int            id,
@@ -616,9 +730,11 @@ app.MapGroup("/person")
 ////          return Results.NotFound();
 ////     }
 ////});
+#endregion
 
 
 
+#region avec distributed cache
 ////// Avec Distributed Cache ---------------------------------------------------------------------------------------------------------------------------
 ////app.MapPut("/person/{id:int}", async (
 ////     [FromRoute]    int                 id,
@@ -641,9 +757,11 @@ app.MapGroup("/person")
 ////          return Results.NotFound();
 ////     }
 ////});
+#endregion
 
 
 
+#region avec injection de dépendance de services
 //// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
 //app.MapPut("/person/{id:int}", async (
 //     [FromRoute]    int                 id,
@@ -668,61 +786,71 @@ app.MapGroup("/person")
 //     .Produces(204)                                                        // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
 //     .Produces(404)                                                        // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
 //     .WithTags("PersonManagement");                                        // Le tag permet de regrouper dans le swagger les Endpoint ayant une même logique
+#endregion
 
 
 
 
 
-//// ==================================================================================================================================================
-////                                                                                                                                                  !
-////                                                               Endpoints DELETE                                                                   !
-////                                                                                                                                                  !
-//// ==================================================================================================================================================
-////// Approche historique : nous récupérons l'object en mémoire avant de le modifier puis de le renvoyer à la base de données
-////app.MapDelete("/person/{id:int}", async (
-////     [FromRoute] int id,
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+////                                                                                       Endpoints DELETE                                                                                           !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+#region En base de données - Approche historique et moderne
+//// Approche historique : nous récupérons l'object en mémoire avant de le modifier puis de le renvoyer à la base de données
+//app.MapDelete("/person/{id:int}", async
+//(
+//     [FromRoute] int id,
 
-////     [FromServices] ApiDbContext c) =>
-////{
+//     [FromServices] ApiDbContext c
+//) =>
+//{
 
-////     var p = await c.Persons.Where(w => w.Id == id).FirstOrDefaultAsync();
-////     if (p is not null)
-////     {
-////          c.Persons.Remove(p);
-////          c.SaveChanges();
+//     var p = await c.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync();
+//     if (p is not null)
+//     {
+//          c.PersonTable.Remove(p);
+//          c.SaveChanges();
 
-////          return Results.NoContent();
-////     }
-////     else
-////     {
-////          return Results.NotFound();
-////     }
-////});
-//// ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
-////    (donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
-////    ~ équivalent à une procédure stockée)
-////app.MapDelete("/person/{id:int}", async (
-////     [FromRoute]    int                 id,
+//          return Results.NoContent();
+//     }
+//     else
+//     {
+//          return Results.NotFound();
+//     }
+//});
+//ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
+//   (donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
+//   ~ équivalent à une procédure stockée)
+app.MapDelete("/person/{id:int}", async
+(
+     [FromRoute]    int                 id,
 
-////     [FromServices] ApiDbContext        c,
-////     [FromServices] IDistributedCache   cache) =>
-////{
+     [FromServices] ApiDbContext        c,
+     [FromServices] IDistributedCache   cache,
 
-////     int result = await c.Persons.Where(w => w.Id == id).ExecuteDeleteAsync();
+                    CancellationToken   token
+) =>
+{
 
-////     if (result > 0)
-////     {
-////          await cache.RemoveAsync($"personne_{id}");
-////          return Results.NoContent();
-////     }
-////     else
-////     {
-////          return Results.NotFound();
-////     }
-////});
+     int result = await c.PersonTable.Where(w => w.Id == id).ExecuteDeleteAsync(token);
+
+     if (result > 0)
+     {
+          await cache.RemoveAsync($"personne_{id}", token);
+          return Results.NoContent();
+     }
+     else
+     {
+          return Results.NotFound();
+     }
+});
+#endregion
 
 
 
+#region avec injection de dépendance de services
 //// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
 //app.MapDelete("/person/{id:int}", async (
 //     [FromRoute]    int            id,
@@ -743,14 +871,15 @@ app.MapGroup("/person")
 //          }
 //     })
 //     .WithTags("PersonManagement");
+#endregion
 
 
 
 
-// ==================================================================================================================================================
-//                                                                                                                                                  !
-//                                                                      Run                                                                         !
-//                                                                                                                                                  !
-// ==================================================================================================================================================
-// Registering and configuring terminal middleware --------------------------------------------------------------------------------------------------
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                                                               Run                                                                                                  !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
+// Registering and configuring terminal middleware ----------------------------------------------------------------------------------------------------------------------------------------------------
 app.Run();
