@@ -5,18 +5,18 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Caching.Memory;                  // IMemoryCache "builder.Services.AddMemoryCache();"
 
-using FluentValidation;                                // Services.AddValidatorsFromAssemblyContaining
-using FluentValidation.Results;                        // ValidationResult
+using FluentValidation;                                     // Services.AddValidatorsFromAssemblyContaining
+using FluentValidation.Results;                             // ValidationResult
 
-using Serilog;                                         //  .WriteTo.File / LoggerConfiguration 
+using Serilog;                                              //  .WriteTo.File / LoggerConfiguration 
 using Serilog.Core;
 
 using MinimalAPIProfesional;
 using MinimalAPIProfesional.Validation;
 using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.Data;                      // ApiDbContext
+using MinimalAPIProfesional.Data;                           // ApiDbContext
 using MinimalAPIProfesional.Services;
 using MinimalAPIProfesional.DTO___Models;
 using MinimalAPIProfesional.Endpoints;
@@ -54,41 +54,41 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 
-//// Cache mémoire manuel -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Cache mémoire manuel -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddMemoryCache();
 
 
 
-//// Output Cache -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//builder.Services.AddOutputCache(opt =>
-//{
-//     opt.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(1)));                                // Stratégie par défaut
-
-//     opt.AddPolicy("Expire2M", p => p.Expire(TimeSpan.FromMinutes(2)).Tag("personnes"));       // Stratégie spécifique
-//                                                                                               // avec un Tag associé pour en permettre la RAZ
-//                                                                                               // en utilisant la méthode "EvictByTagAsync" de l'interface "IOutputCacheStore"
-//                                                                                               // dans un PUT ou un DELETE
-
-//     //opt.AddPolicy("Expire10S", p => p.Expire(TimeSpan.FromSeconds(10)));                    // Stratégie spécifique
-//     opt.AddPolicy("Expire10S", p =>                                                           // Stratégie spécifique
-//     {
-//          p.Cache()
-//          .Expire(TimeSpan.FromSeconds(10))
-//          .Tag("seconds10");
-//     });
-
-//     opt.AddPolicy("ById", p => p.SetVaryByRouteValue("id"));                                  // Stratégie précisant qu'il y aura un cache par identifiant fourni dans la route !
-//});
-
-
-
-// Distributed Cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-builder.Services.AddDistributedSqlServerCache(options =>
+// Output Cache ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+builder.Services.AddOutputCache(opt =>
 {
-     options.ConnectionString = builder.Configuration.GetConnectionString("DistribCache_ConnectionString");
-     options.SchemaName = "dbo";
-     options.TableName = "TestCache";
+     opt.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(1)));                                     // Stratégie par défaut
+
+     opt.AddPolicy("Expire2Min", p => p.Expire(TimeSpan.FromMinutes(2)).Tag("personnes"));          // Stratégie spécifique
+                                                                                                    // avec un Tag associé pour en permettre la RAZ
+                                                                                                    // en utilisant la méthode "EvictByTagAsync" de l'interface "IOutputCacheStore"
+                                                                                                    // dans un PUT ou un DELETE
+
+     //opt.AddPolicy("Expire10S", p => p.Expire(TimeSpan.FromSeconds(10)));                         // Stratégie spécifique
+     opt.AddPolicy("Expire10S", p =>                                                                // Stratégie spécifique
+     {
+          p.Cache()
+          .Expire(TimeSpan.FromSeconds(10))
+          .Tag("seconds10");
+     });
+
+     opt.AddPolicy("ById", p => p.SetVaryByRouteValue("id"));                                       // Stratégie précisant qu'il y aura un cache par identifiant fourni dans la route !
 });
+
+
+
+//// Distributed Cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//builder.Services.AddDistributedSqlServerCache(options =>
+//{
+//     options.ConnectionString = builder.Configuration.GetConnectionString("DistribCache_ConnectionString");
+//     options.SchemaName = "dbo";
+//     options.TableName = "TestCache";
+//});
 
 
 
@@ -162,9 +162,9 @@ if (app.Environment.IsDevelopment())
 
 
 
-//// Appel des Middlewares ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//// Déclaration de l'utilisation du cache automatique
-//app.UseOutputCache();
+// Appel des Middlewares ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Déclaration de l'utilisation du cache automatique
+app.UseOutputCache();
 
 
 
@@ -240,126 +240,132 @@ if (app.Environment.IsDevelopment())
 
 #region avec base de données sans filtre
 // Avec memory cache manuel ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapGet("/person", async
-(
-     [FromServices] ApiDbContext        context,
+//app.MapGet("/person", async
+//(
+//     [FromServices] ApiDbContext        context,
 
-                    CancellationToken   token
-) =>
-{
+//                    CancellationToken   token
+//) =>
+//{
 
-     List<Person> person = await context.PersonTable.ToListAsync(token);
-     return Results.Ok(person);
-});
+//     List<Person> person = await context.PersonTable.ToListAsync(token);
+//     return Results.Ok(person);
+//});
 #endregion
 
 
 
 #region avec base de données avec un filtre
 // Avec memory cache manuel ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapGet("/person/{id:int}", async
-(
-     [FromRoute]         int                 id,
+//app.MapGet("/person/{id:int}", async
+//(
+//     [FromRoute]         int                 id,
 
-     [FromServices]      ApiDbContext        context,
+//     [FromServices]      ApiDbContext        context,
 
-                         CancellationToken   token
-) =>
-{
+//                         CancellationToken   token
+//) =>
+//{
 
-     //Person p = await context.Persons.Where(w => w.Id == id).ToList();
-     Person p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync(token);
+//     //Person p = await context.Persons.Where(w => w.Id == id).ToList();
+//     Person p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync(token);
 
-          if (p is null) return Results.NotFound();
+//          if (p is null) return Results.NotFound();
 
-               return Results.Ok(p);
-});
+//          return Results.Ok(p);
+//});
 #endregion
 
 
 
 #region avec injection de dépendance de services
-////// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
-////app.MapGet("/person", async
-////     ([FromServices] IPersonService iService) =>
-////{
-////     var p = await iService.GetAll();
-////     return Results.Ok(p);
-////})
-////     .WithTags("PersonManagement");
-///
+// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapGet("/person", async
+//     ([FromServices] IPersonService iService) =>
+//{
+//     var p = await iService.GetAll();
+//     return Results.Ok(p);
+//})
+//     .WithTags("PersonManagement");
 #endregion
 
 
 
-#region avec memory cache manuel
-////// Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
-////app.MapGet("/person/{id:int}", async
-////     ([FromRoute]   int            id,
+#region avec Memory cache (manuel)
+// Avec Memory cache (manuel) -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapGet("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-////     [FromServices] ApiDbContext   context,
-////     [FromServices] IMemoryCache   cache) =>
-////{
+//     [FromServices] ApiDbContext        context,
+//     [FromServices] IMemoryCache        cache,
 
-////     if (cache.TryGetValue<Person>($"personne_{id}", out Person? p))                // J'essaie en premier de récupérer la Person à partir du cache
-////     {
+//                    CancellationToken   token
+//) =>
+//{
 
-////          return Results.Ok(p);
-////     }
-////     else                                                                            // Sinon j'essaie à partir de la base de données
-////     {
+//     if (cache.TryGetValue<Person>($"personne_{id}", out Person? p))                // J'essaie en premier de récupérer la Person à partir du cache
+//     {
 
-////          p = await context.Persons.Where(w => w.Id == id).FirstOrDefaultAsync();
+//          return Results.Ok(p);
+//     }
+//     else                                                                            // Sinon j'essaie à partir de la base de données
+//     {
 
-////          if (p is null)
-////          {
+//          p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync(token);
 
-////               return Results.NotFound();
-////          }
-////          else
-////          {
+//          if (p is null)
+//          {
 
-////               cache.Set($"personne_{id}", p);                                       // Je stocke la Person dans le cache
-////               return Results.Ok(p);
-////          }
-////     }
-////});
+//               return Results.NotFound();
+//          }
+//          else
+//          {
+
+//               cache.Set($"personne_{id}", p);                                       // Je stocke la Person dans le cache
+//               return Results.Ok(p);
+//          }
+//     }
+//});
 #endregion
 
 
 
-#region avec output cache automatique
-////// Avec Output cache automatique --------------------------------------------------------------------------------------------------------------------
-////app.MapGet("/person", [OutputCache(PolicyName = "Expire2M")] async (
-////     [FromServices] ApiDbContext context) =>
-////{
+#region avec output cache (automatique)
+// Avec Output cache automatique ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapGet("/person", [OutputCache(PolicyName = "Expire2Min")] async
+(
+     [FromServices] ApiDbContext context
+) =>
+{
 
-////     List<Person> lp = await context.Persons.ToListAsync();
+     List<Person> lp = await context.PersonTable.ToListAsync();
 
-////     return Results.Ok(lp);
-////})
-////.CacheOutput("Expire2M");
+     return Results.Ok(lp);
+})
+.CacheOutput("Expire2Min");
 
 
 
-////app.MapGet("/person/{id:int}", [OutputCache(PolicyName = "ById")] async (
-////     [FromRoute]    int            id,
+app.MapGet("/person/{id:int}", [OutputCache(PolicyName = "ById")] async
+(
+     [FromRoute]    int            id,
 
-////     [FromServices] ApiDbContext   context) =>
-////{
+     [FromServices] ApiDbContext   context) =>
+{
 
-////     var p = await context.Persons.Where(w => w.Id == id).FirstOrDefaultAsync();
+     var p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync();
 
-////     if (p is null)
-////     {
-////          return Results.NotFound();
-////     }
-////     else
-////     {
-////          return Results.Ok(p);
-////     }
-////})
-////.CacheOutput("ById");
+     if (p is null)
+     {
+          return Results.NotFound();
+     }
+     else
+     {
+          return Results.Ok(p);
+     }
+})
+.CacheOutput("ById");
 #endregion
 
 
@@ -521,15 +527,53 @@ app.MapGet("/person/{id:int}", async
 
 #region avec une base de données
 // Avec utilisation d'une base de données -------------------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapPost("/person", async
+//(
+//     [FromBody]     Person                   p,
+
+//     [FromServices] IValidator<Person>       validator,
+//     [FromServices] ApiDbContext             context,
+//     //[FromServices] IDistributedCache        cache,
+
+//     [FromServices] CancellationToken        token
+//) =>
+//{
+
+//     FluentValidation.Results.ValidationResult result = validator.Validate(p);
+
+//     if (!result.IsValid)
+//     {
+//          return Results.BadRequest(result.Errors.Select(e => new
+//          {
+//               Message        = e.ErrorMessage,
+//               PropertyName   = e.PropertyName,
+//               Severity       = e.Severity
+//          }));
+//     }
+//     else
+//     {
+//          await context.PersonTable.AddAsync(p, token); ;
+//          await context.SaveChangesAsync(token);
+
+//          //await cache.SetAsync($"personne_{p.Id}", p);                                 // Je stocke la Person dans le cache
+//          return Results.Ok(p);
+//     }
+//});
+#endregion
+
+
+
+#region avec memory cache (manuel)
+// Avec utilisation d'une base de données -------------------------------------------------------------------------------------------------------------------------------------------------------------
 app.MapPost("/person", async
 (
-     [FromBody]     Person                   p,
+     [FromBody] Person p,
 
-     [FromServices] IValidator<Person>       validator,
-     [FromServices] ApiDbContext             context,
-     [FromServices] IDistributedCache        cache,
+     [FromServices] IValidator<Person> validator,
+     [FromServices] ApiDbContext context,
+     [FromServices] IMemoryCache cache,
 
-                    CancellationToken        token
+                    CancellationToken token
 ) =>
 {
 
@@ -539,9 +583,9 @@ app.MapPost("/person", async
      {
           return Results.BadRequest(result.Errors.Select(e => new
           {
-               Message        = e.ErrorMessage,
-               PropertyName   = e.PropertyName,
-               Severity       = e.Severity
+               Message = e.ErrorMessage,
+               PropertyName = e.PropertyName,
+               Severity = e.Severity
           }));
      }
      else
@@ -549,10 +593,48 @@ app.MapPost("/person", async
           await context.PersonTable.AddAsync(p, token); ;
           await context.SaveChangesAsync(token);
 
-          //await cache.SetAsync($"personne_{p.Id}", p);                                 // Je stocke la Person dans le cache
+          cache.Set($"personne_{p.Id}", p);                                                    // Je stocke la Person dans le cache
           return Results.Ok(p);
      }
 });
+#endregion
+
+
+
+#region avec un cache distribué
+//// Avec utilisation d'un cache distribué --------------------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapPost("/person", async
+//(
+//     [FromBody] Person p,
+
+//     [FromServices] IValidator<Person>  validator,
+//     [FromServices] ApiDbContext        context,
+//     [FromServices] IDistributedCache   cache,
+
+//                    CancellationToken   token
+//) =>
+//{
+
+//     FluentValidation.Results.ValidationResult result = validator.Validate(p);
+
+//     if (!result.IsValid)
+//     {
+//          return Results.BadRequest(result.Errors.Select(e => new
+//          {
+//               Message = e.ErrorMessage,
+//               PropertyName = e.PropertyName,
+//               Severity = e.Severity
+//          }));
+//     }
+//     else
+//     {
+//          await context.PersonTable.AddAsync(p, token); ;
+//          await context.SaveChangesAsync(token);
+
+//          //await cache.SetAsync($"personne_{p.Id}", p);                                 // Je stocke la Person dans le cache
+//          return Results.Ok(p);
+//     }
+//});
 #endregion
 
 
@@ -641,6 +723,35 @@ app.MapPost("/person", async
 // ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
 //(donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
 //    ~ équivalent à une procédure stockée)
+//app.MapPut("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
+
+//     [FromBody]     Person              p,
+
+//     [FromServices] ApiDbContext        context,
+
+//                    CancellationToken   token
+//) =>
+//{
+
+//     var result = await context.PersonTable
+//                    .Where(w => w.Id == id)
+//                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)             // ExecuteUpdateAsync est une méthode d'Entity Framework Core qui permet de mettre à jour en masse sans charger les entités en mémoire
+//                                                  .SetProperty(pers => pers.FirstName, p.FirstName), token);
+
+
+
+//     if (result > 0) return Results.NoContent();
+
+//     return Results.NotFound();
+//});
+#endregion
+
+
+
+#region avec memory cache (manuel)
+// Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
 app.MapPut("/person/{id:int}", async
 (
      [FromRoute]    int                 id,
@@ -648,6 +759,7 @@ app.MapPut("/person/{id:int}", async
      [FromBody]     Person              p,
 
      [FromServices] ApiDbContext        context,
+     [FromServices] IMemoryCache        cache,
 
                     CancellationToken   token
 ) =>
@@ -655,81 +767,56 @@ app.MapPut("/person/{id:int}", async
 
      var result = await context.PersonTable
                     .Where(w => w.Id == id)
-                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)             // ExecuteUpdateAsync est une méthode d'Entity Framework Core qui permet de mettre à jour en masse sans charger les entités en mémoire
+                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
                                                   .SetProperty(pers => pers.FirstName, p.FirstName), token);
 
+     if (result > 0)
+     {
 
+          cache.Remove($"personne_{id}");         // Suppresion de cette clef du cache (préférable à une mise à jour du cache car cela permet de ne pas avoir à gérer la cohérence du cache)
+          return Results.NoContent();
+     }
+     else
+     {
 
-     if (result > 0) return Results.NoContent();
-
-     return Results.NotFound();
+          return Results.NotFound();
+     }
 });
-
 #endregion
 
 
 
-#region avec memory cache manuel
-////// Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
-////app.MapPut("/person/{id:int}", async
-////     ([FromRoute]   int            id,
+#region avec output cache (automatique)
+// Avec Output cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapPut("/person/{id:int}", async
+(
+     [FromRoute] int id,
 
-////     [FromBody]     Person         p,
+     [FromBody] Person p,
 
-////     [FromServices] ApiDbContext   context,
-////     [FromServices] IMemoryCache   cache) =>
-////{
+     [FromServices] ApiDbContext        context,
+     [FromServices] IOutputCacheStore   cache
+) =>
+{
 
-////     var result = await context.Persons
-////     .Where(w => w.Id == id)
-////     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
-////                                   .SetProperty(pers => pers.FirstName, p.FirstName));
+     var result = await context.PersonTable
+     .Where(w => w.Id == id)
+     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
+                                   .SetProperty(pers => pers.FirstName, p.FirstName));
 
-////     if (result > 0)
-////     {
+     if (result > 0)
+     {
 
-////          cache.Remove($"personne_{id}");         // Suppresion de cette clef du cache
-////          return Results.NoContent();
-////     }
-////     else
-////     {
+          await cache.EvictByTagAsync("ById", default);
 
-////          return Results.NotFound();
-////     }
-////});
-#endregion
+          return Results.NoContent();
+     }
+     else
+     {
 
-
-
-#region avec output cache automatique
-////// Avec Output cache --------------------------------------------------------------------------------------------------------------------------------
-////app.MapPut("/person/{id:int}", async
-////     ([FromRoute]   int            id,
-
-////     [FromBody]     Person         p,
-
-////     [FromServices] ApiDbContext context,
-////     [FromServices] IOutputCacheStore cache) =>
-////{
-
-////     var result = await context.Persons
-////     .Where(w => w.Id == id)
-////     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
-////                                   .SetProperty(pers => pers.FirstName, p.FirstName));
-
-////     if (result > 0)
-////     {
-
-////          await cache.EvictByTagAsync("ById", default);
-
-////          return Results.NoContent();
-////     }
-////     else
-////     {
-
-////          return Results.NotFound();
-////     }
-////});
+          return Results.NotFound();
+     }
+});
 #endregion
 
 
@@ -823,29 +910,57 @@ app.MapPut("/person/{id:int}", async
 //ou Approche "moderne" dite "bulk" -> on ne fait plus de select avant de faire le delete !
 //   (donc plus performant car l'objet n'est plus récupéré en mémoire avant sa suppression
 //   ~ équivalent à une procédure stockée)
-app.MapDelete("/person/{id:int}", async
-(
-     [FromRoute]    int                 id,
+//app.MapDelete("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-     [FromServices] ApiDbContext        c,
-     [FromServices] IDistributedCache   cache,
+//     [FromServices] ApiDbContext        c,
+//     [FromServices] IDistributedCache   cache,
 
-                    CancellationToken   token
-) =>
-{
+//     [FromServices] CancellationToken   token
+//) =>
+//{
 
-     int result = await c.PersonTable.Where(w => w.Id == id).ExecuteDeleteAsync(token);
+//     int result = await c.PersonTable.Where(w => w.Id == id).ExecuteDeleteAsync(token);
 
-     if (result > 0)
-     {
-          await cache.RemoveAsync($"personne_{id}", token);
-          return Results.NoContent();
-     }
-     else
-     {
-          return Results.NotFound();
-     }
-});
+//     if (result > 0)
+//     {
+//          await cache.RemoveAsync($"personne_{id}", token);
+//          return Results.NoContent();
+//     }
+//     else
+//     {
+//          return Results.NotFound();
+//     }
+//});
+#endregion
+
+
+
+#region avec memory cache (manuel)
+//app.MapDelete("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
+
+//     [FromServices] ApiDbContext        c,
+//     [FromServices] IMemoryCache        cache,
+
+//                    CancellationToken   token
+//) =>
+//{
+
+//     int result = await c.PersonTable.Where(w => w.Id == id).ExecuteDeleteAsync(token);
+
+//     if (result > 0)
+//     {
+//          cache.Remove($"personne_{id}");
+//          return Results.NoContent();
+//     }
+//     else
+//     {
+//          return Results.NotFound();
+//     }
+//});
 #endregion
 
 
