@@ -4,19 +4,19 @@ using System.Threading;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Memory;                  // IMemoryCache "builder.Services.AddMemoryCache();"
+using Microsoft.Extensions.Caching.Distributed;                       // IDistributedCache "builder.Services.AddDistributedSqlServerCache(options => { ... });"
+using Microsoft.Extensions.Caching.Memory;                            // IMemoryCache "builder.Services.AddMemoryCache();"
 
-using FluentValidation;                                     // Services.AddValidatorsFromAssemblyContaining
-using FluentValidation.Results;                             // ValidationResult
+using FluentValidation;                                               // Services.AddValidatorsFromAssemblyContaining
+using FluentValidation.Results;                                       // ValidationResult
 
-using Serilog;                                              //  .WriteTo.File / LoggerConfiguration 
+using Serilog;                                                        //  .WriteTo.File / LoggerConfiguration 
 using Serilog.Core;
 
 using MinimalAPIProfesional;
 using MinimalAPIProfesional.Validation;
 using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.Data;                           // ApiDbContext
+using MinimalAPIProfesional.Data;                                     // ApiDbContext
 using MinimalAPIProfesional.Services;
 using MinimalAPIProfesional.DTO___Models;
 using MinimalAPIProfesional.Endpoints;
@@ -59,43 +59,52 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 
-// Output Cache ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-builder.Services.AddOutputCache(opt =>
-{
-     opt.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(1)));                                     // Stratégie par défaut
+// Output Cache (Automatique) -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//builder.Services.AddOutputCache(opt =>
+//{
+//     opt.AddBasePolicy(b => b.Expire(TimeSpan.FromMinutes(1)));                                                                                     // Stratégie par défaut
 
-     opt.AddPolicy("Expire2Min", p => p.Expire(TimeSpan.FromMinutes(2)).Tag("personnes"));          // Stratégie spécifique
-                                                                                                    // avec un Tag associé pour en permettre la RAZ
-                                                                                                    // en utilisant la méthode "EvictByTagAsync" de l'interface "IOutputCacheStore"
-                                                                                                    // dans un PUT ou un DELETE
+//     opt.AddPolicy("Expire2Min", p => p.Expire(TimeSpan.FromMinutes(2)).Tag("personnes"));                                                          // Stratégie spécifique
+//                                                                                                                                                    // avec un Tag associé pour en permettre la RAZ
+//                                                                                                                                                    // en utilisant la méthode "EvictByTagAsync" de l'interface "IOutputCacheStore"
+//                                                                                                                                                    // dans un PUT ou un DELETE
 
-     //opt.AddPolicy("Expire10S", p => p.Expire(TimeSpan.FromSeconds(10)));                         // Stratégie spécifique
-     opt.AddPolicy("Expire10S", p =>                                                                // Stratégie spécifique
-     {
-          p.Cache()
-          .Expire(TimeSpan.FromSeconds(10))
-          .Tag("seconds10");
-     });
+//     //opt.AddPolicy("Expire10S", p => p.Expire(TimeSpan.FromSeconds(10)));                                                                         // Stratégie spécifique
+//     opt.AddPolicy("Expire10S", p =>                                                                                                                // Stratégie spécifique
+//     {
+//          p.Cache()
+//          .Expire(TimeSpan.FromSeconds(10))
+//          .Tag("seconds10");
+//     });
 
-     opt.AddPolicy("ById", p => p.SetVaryByRouteValue("id"));                                       // Stratégie précisant qu'il y aura un cache par identifiant fourni dans la route !
-});
+//     opt.AddPolicy("ById", p => p.SetVaryByRouteValue("id"));                                                                                       // Stratégie précisant qu'il y aura un cache par identifiant fourni dans la route !
+//});
 
 
 
-//// Distributed Cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Distributed Cache for Sql Server -------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddDistributedSqlServerCache(options =>
 //{
-//     options.ConnectionString = builder.Configuration.GetConnectionString("DistribCache_ConnectionString");
-//     options.SchemaName = "dbo";
-//     options.TableName = "TestCache";
+//     options.ConnectionString      = builder.Configuration.GetConnectionString("ConnectionStringSqlServer_DistributedCache");
+//     options.SchemaName            = "dbo";
+//     options.TableName             = "TestCache";
+//});
+
+
+
+// Distributed Cache for Redis ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//builder.Services.AddStackExchangeRedisCache(options =>
+//{
+//     options.Configuration         = builder.Configuration.GetConnectionString("ConnectionStringRedis_DistributedCache");
+//     options.InstanceName          = "MinimalAPIProfesional_";                                                                                        // Préfixe pour les clefs stockées dans Redis
 //});
 
 
 
 // Enregistrement du contexte de la base de données ---------------------------------------------------------------------------------------------------------------------------------------------------
 //builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlite(builder.Configuration.GetConnectionString("SqLite-DEVELOPMENT")));
-builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer_DEVELOPMENT")));
-//builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("SqlServer_PRODUCTION")));
+builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionStringSqlServer_DEVELOPMENT")));
+//builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Configuration.GetConnectionString("ConnectionStringSqlServer_PRODUCTION")));
 
 
 
@@ -103,7 +112,7 @@ builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Conf
 //builder.Services.AddScoped<IPersonService, EFCorePersonService>();    // Précise l'interface "IPersonService" et son implémentation à utiliser "EFCorePersonService"
 //                                                                      //
 //                                                                      // "AddScoped", en ASP.NET Web API, permet de dire que la durée de vie
-//                                                                      // du service sera le même que celle de la requête http et l'instance du service
+//                                                                      // du service sera la même que celle de la requête http et l'instance du service
 //                                                                      // sera nettoyée de la mémoire (surtout s'il dispose de IDisposable)
 //                                                                      // à la fin de vie de la requête http
 //                                                                      //
@@ -144,8 +153,8 @@ if (app.Environment.IsDevelopment())
 //                                                                              Appel de Services et Middlewares                                                                                      !
 //                                                                                                                                                                                                    !
 // ====================================================================================================================================================================================================
-// Appel des Services -------------------------------------------------------------------------------------------------------------------------------
-//// Création de la base de données si elle n'existe pas : !!!!! A ne pas faire en Production car nous ne profiterions plus du système de "Migration" pour faire évoluer la base !!!!!
+// Appel des Services ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Création de la base de données si elle n'existe pas : !!!!! A ne pas faire en Production car nous ne profiterions plus du système de "Migration" pour faire évoluer la base !!!!!
 //app.Services
 //     .CreateScope().ServiceProvider
 //     .GetRequiredService<ApiDbContext>().Database
@@ -153,7 +162,7 @@ if (app.Environment.IsDevelopment())
 
 
 
-//// Checks whether there is a migration to be applied and does so if necessary -----------------------------------------------------------------------------------------------------------------------
+// Checks whether there is a migration to be applied and does so if necessary -------------------------------------------------------------------------------------------------------------------------
 //await app.Services
 //     .CreateScope().ServiceProvider
 //     .GetRequiredService<ApiDbContext>().Database
@@ -164,7 +173,7 @@ if (app.Environment.IsDevelopment())
 
 // Appel des Middlewares ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Déclaration de l'utilisation du cache automatique
-app.UseOutputCache();
+//app.UseOutputCache();
 
 
 
@@ -278,19 +287,6 @@ app.UseOutputCache();
 
 
 
-#region avec injection de dépendance de services
-// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
-//app.MapGet("/person", async
-//     ([FromServices] IPersonService iService) =>
-//{
-//     var p = await iService.GetAll();
-//     return Results.Ok(p);
-//})
-//     .WithTags("PersonManagement");
-#endregion
-
-
-
 #region avec Memory cache (manuel)
 // Avec Memory cache (manuel) -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 //app.MapGet("/person/{id:int}", async
@@ -333,121 +329,60 @@ app.UseOutputCache();
 
 #region avec output cache (automatique)
 // Avec Output cache automatique ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapGet("/person", [OutputCache(PolicyName = "Expire2Min")] async
-(
-     [FromServices] ApiDbContext context
-) =>
-{
+//app.MapGet("/person", [OutputCache(PolicyName = "Expire2Min")] async
+//(
+//     [FromServices] ApiDbContext context
+//) =>
+//{
 
-     List<Person> lp = await context.PersonTable.ToListAsync();
+//     List<Person> lp = await context.PersonTable.ToListAsync();
 
-     return Results.Ok(lp);
-})
-.CacheOutput("Expire2Min");
+//     return Results.Ok(lp);
+//})
+//.CacheOutput("Expire2Min");
 
 
 
-app.MapGet("/person/{id:int}", [OutputCache(PolicyName = "ById")] async
-(
-     [FromRoute]    int            id,
+//app.MapGet("/person/{id:int}", [OutputCache(PolicyName = "ById")] async
+//(
+//     [FromRoute]    int            id,
 
-     [FromServices] ApiDbContext   context) =>
-{
+//     [FromServices] ApiDbContext   context) =>
+//{
 
-     var p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync();
+//     var p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync();
 
-     if (p is null)
-     {
-          return Results.NotFound();
-     }
-     else
-     {
-          return Results.Ok(p);
-     }
-})
-.CacheOutput("ById");
+//     if (p is null)
+//     {
+//          return Results.NotFound();
+//     }
+//     else
+//     {
+//          return Results.Ok(p);
+//     }
+//})
+//.CacheOutput("ById");
 #endregion
 
 
 
 #region avec distributed memory cache
-////// Avec Distributed Memory Cache --------------------------------------------------------------------------------------------------------------------
-////app.MapGet("/person/{id:int}", async (
-////     [FromRoute]    int                 id,
+// Avec Distributed Memory Cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+//app.MapGet("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-////     [FromServices] IDistributedCache   cache,
-////     [FromServices] ApiDbContext        context) =>
-////     {
+//     [FromServices] IDistributedCache   cache,
+//     [FromServices] ApiDbContext        context
+//) =>
+//{
 
-////          var p = await cache.GetAsync<Person>($"personne_{id}");                              // J'essaie en premier de récupérer la Person à partir du cache
+//     //await cache.GetAsync<Person>($"personne_{id}", out var p);                                // le "out var p" est incompatible avec le "await" (l'approche asynchrone) dans la version 9.0 de .NET, donc on ne peut pas l'utiliser ici !
+//     var p = await cache.GetAsync<Person>($"personne_{id}");                                   // J'essaie en premier de récupérer la Person à partir du cache
 
-////          if (p is null)
-////          {
-////               p = await context.Persons.Where(w => w.Id == id).FirstOrDefaultAsync();         // Sinon j'essaie à partir de la base de données
-
-////               if (p is null)
-////               {
-////                    return Results.NotFound();
-////               }
-////               else
-////               {
-////                    await cache.SetAsync($"personne_{id}", p);                                 // Je stocke la Person dans le cache
-////                    return Results.Ok(p);
-////               }
-////          }
-////          else
-////          {
-////               return Results.Ok(p);
-////          }
-////     });
-#endregion
-
-
-
-#region avec injection de dépendance de services
-//// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
-//app.MapGet("/person", async (
-//     //[FromServices] IDistributedCache cache,
-//     [FromServices] IPersonService iPersonService) =>
+//     if (p is null)
 //     {
-
-//          //var lp = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                     // J'essaie en premier de récupérer la Person à partir du cache
-
-//          //if (lp is null)
-//          //{
-//          List<PersonOutputModel> lp = await iPersonService.GetAll();                               // Sinon j'essaie à partir de la base de données
-
-//          if (lp is null)
-//          {
-//               return Results.NotFound();
-//          }
-//          else
-//          {
-//               //await cache.SetAsync($"personne_{id}", lp);                                        // Je stocke la Person dans le cache
-//               return Results.Ok(lp);
-//          }
-//          //}
-//          //else
-//          //{
-//          //     return Results.Ok(lp);
-//          //}
-//     })
-//     .WithTags("PersonManagement8888");                                                             // Permet de regrouper les Endpoints par 'Tag' dans Swagger
-
-
-
-//app.MapGet("/person/{id:int}", async (
-//     [FromRoute]    int            id,
-
-//     //[FromServices] IDistributedCache cache,
-//     [FromServices] IPersonService iPersonService) =>
-//     {
-
-//          //var p = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                      // J'essaie en premier de récupérer la Person à partir du cache
-
-//          //if (p is null)
-//          //{
-//          PersonOutputModel? p = await iPersonService.GetById(id);                                  // Sinon j'essaie à partir de la base de données
+//          p = await context.PersonTable.Where(w => w.Id == id).FirstOrDefaultAsync();         // Sinon j'essaie à partir de la base de données
 
 //          if (p is null)
 //          {
@@ -455,16 +390,84 @@ app.MapGet("/person/{id:int}", [OutputCache(PolicyName = "ById")] async
 //          }
 //          else
 //          {
-//               //await cache.SetAsync($"personne_{id}", p);                                         // Je stocke la Person dans le cache
+//               await cache.SetAsync($"personne_{id}", p);                                      // Je stocke la Person dans le cache
 //               return Results.Ok(p);
 //          }
-//          //}
-//          //else
-//          //{
-//          //     return Results.Ok(p);
-//          //}
-//     })
-//     .WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+//     }
+//     else
+//     {
+//          return Results.Ok(p);
+//     }
+//});
+#endregion
+
+
+
+#region avec injection de dépendance de services
+// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapGet("/person", async
+(
+     //[FromServices] IDistributedCache cache,
+     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+) =>
+{
+
+     //var lp = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                     // J'essaie en premier de récupérer la Person à partir du cache
+
+     //if (lp is null)
+     //{
+     List<PersonOutputModel> lp = await iPersonService.GetAll();                               // Sinon j'essaie à partir de la base de données
+
+     if (lp is null)
+     {
+          return Results.NotFound();
+     }
+     else
+     {
+          //await cache.SetAsync($"personne_{id}", lp);                                        // Je stocke la Person dans le cache
+          return Results.Ok(lp);
+     }
+     //}
+     //else
+     //{
+     //     return Results.Ok(lp);
+     //}
+})
+.WithTags("PersonManagement8888");                                                             // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+
+
+
+app.MapGet("/person/{id:int}", async
+(
+     [FromRoute] int id,
+
+     //[FromServices] IDistributedCache cache,
+     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+) =>
+{
+
+     //var p = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                      // J'essaie en premier de récupérer la Person à partir du cache
+
+     //if (p is null)
+     //{
+     PersonOutputModel? p = await iPersonService.GetById(id);                                  // Sinon j'essaie à partir de la base de données
+
+     if (p is null)
+     {
+          return Results.NotFound();
+     }
+     else
+     {
+          //await cache.SetAsync($"personne_{id}", p);                                         // Je stocke la Person dans le cache
+          return Results.Ok(p);
+     }
+     //}
+     //else
+     //{
+     //     return Results.Ok(p);
+     //}
+})
+.WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 #endregion
 
 
@@ -602,7 +605,7 @@ app.MapPost("/person", async
 
 
 #region avec un cache distribué
-//// Avec utilisation d'un cache distribué --------------------------------------------------------------------------------------------------------------------------------------------------------------
+// Avec utilisation d'un cache distribué --------------------------------------------------------------------------------------------------------------------------------------------------------------
 //app.MapPost("/person", async
 //(
 //     [FromBody] Person p,
@@ -621,9 +624,9 @@ app.MapPost("/person", async
 //     {
 //          return Results.BadRequest(result.Errors.Select(e => new
 //          {
-//               Message = e.ErrorMessage,
-//               PropertyName = e.PropertyName,
-//               Severity = e.Severity
+//               Message        = e.ErrorMessage,
+//               PropertyName   = e.PropertyName,
+//               Severity       = e.Severity
 //          }));
 //     }
 //     else
@@ -640,40 +643,40 @@ app.MapPost("/person", async
 
 
 #region Injection de dépendance de services
-//// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
-//app.MapPost("/person", async (
-//     [FromBody]     PersonnInputModel             p,
+// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapPost("/person", async
+(
+     [FromBody]     PersonnInputModel                  p,
 
-//     [FromServices] IValidator<PersonnInputModel> validator,
-//     [FromServices] IPersonService                iPersonService,
-//     //[FromServices] IDistributedCache cache,
+     [FromServices] IValidator<PersonnInputModel>      validator,
+     //[FromServices] IDistributedCache cache,
+     [FromServices] IPersonService                     iPersonService,                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
 
-//     CancellationToken token) =>
-//     {
-//          var result = validator.Validate(p);
+     CancellationToken token
+) =>
+{
+     var result = validator.Validate(p);
 
-//          if (!result.IsValid)
-//          {
-//               return Results.BadRequest(result.Errors.Select(e => new
-//               {
-//                    Message = e.ErrorMessage,
-//                    PropertyName = e.PropertyName,
-//                    Severity = e.Severity
-//               }));
-//          }
-//          else
-//          {
-//               await iPersonService.Add(p);
+     if (!result.IsValid)
+     {
+          return Results.BadRequest(result.Errors.Select(e => new
+          {
+               Message        = e.ErrorMessage,
+               PropertyName   = e.PropertyName,
+               Severity       = e.Severity
+          }));
+     }
+     else
+     {
+          await iPersonService.Add(p);
 
-//               //await cache.SetAsync($"personne_{p.Id}", p);                                       // Je stocke la Person dans le cache
-//               return Results.Ok(p);
-//          }
-//          //if (string.IsNullOrEmpty(p.LastName)) return Results.BadRequest("Le nome est requis");
-//          //if (string.IsNullOrEmpty(p.FirstName)) return Results.BadRequest("Le prénome est requis");
-//     })
-//     .Accepts<PersonnInputModel>(contentType: "application/json")                                   // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
-//     .Produces<PersonOutputModel>(contentType: "application/json")                                  // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
-//     .WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+          //await cache.SetAsync($"personne_{p.Id}", p);                                            // Je stocke la Person dans le cache
+          return Results.Ok(p);
+     }
+})
+.Accepts<PersonnInputModel>(contentType: "application/json")                                        // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
+.Produces<PersonOutputModel>(contentType: "application/json")                                       // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
+.WithTags("PersonManagement");                                                                      // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 #endregion
 
 
@@ -788,91 +791,95 @@ app.MapPut("/person/{id:int}", async
 
 #region avec output cache (automatique)
 // Avec Output cache ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapPut("/person/{id:int}", async
-(
-     [FromRoute] int id,
+//app.MapPut("/person/{id:int}", async
+//(
+//     [FromRoute] int id,
 
-     [FromBody] Person p,
+//     [FromBody] Person p,
 
-     [FromServices] ApiDbContext        context,
-     [FromServices] IOutputCacheStore   cache
-) =>
-{
+//     [FromServices] ApiDbContext        context,
+//     [FromServices] IOutputCacheStore   cache
+//) =>
+//{
 
-     var result = await context.PersonTable
-     .Where(w => w.Id == id)
-     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
-                                   .SetProperty(pers => pers.FirstName, p.FirstName));
+//     var result = await context.PersonTable
+//     .Where(w => w.Id == id)
+//     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
+//                                   .SetProperty(pers => pers.FirstName, p.FirstName));
 
-     if (result > 0)
-     {
+//     if (result > 0)
+//     {
 
-          await cache.EvictByTagAsync("ById", default);
+//          await cache.EvictByTagAsync("ById", default);
 
-          return Results.NoContent();
-     }
-     else
-     {
+//          return Results.NoContent();
+//     }
+//     else
+//     {
 
-          return Results.NotFound();
-     }
-});
+//          return Results.NotFound();
+//     }
+//});
 #endregion
 
 
 
 #region avec distributed cache
-////// Avec Distributed Cache ---------------------------------------------------------------------------------------------------------------------------
-////app.MapPut("/person/{id:int}", async (
-////     [FromRoute]    int                 id,
-////     [FromBody]     Person              p,
-////     [FromServices] ApiDbContext        context,
-////     [FromServices] IDistributedCache   cache) =>
-////{
-////     var result = await context.Persons
-////     .Where(w => w.Id == id)
-////     .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
-////                                   .SetProperty(pers => pers.FirstName, p.FirstName));
+// Avec Distributed Cache ---------------------------------------------------------------------------------------------------------------------------
+//app.MapPut("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
+//     [FromBody]     Person              p,
+//     [FromServices] ApiDbContext        context,
+//     [FromServices] IDistributedCache   cache
+//) =>
+//{
+//     var result = await context.PersonTable
+//          .Where(w => w.Id == id)
+//          .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName,     p.LastName)
+//                                        .SetProperty(pers => pers.FirstName,    p.FirstName));
 
-////     if (result > 0)
-////     {
-////          await cache.RemoveAsync($"personne_{id}");
-////          return Results.NoContent();
-////     }
-////     else
-////     {
-////          return Results.NotFound();
-////     }
-////});
+//     if (result > 0)
+//     {
+//          await cache.RemoveAsync($"personne_{id}");
+//          return Results.NoContent();
+//     }
+//     else
+//     {
+//          return Results.NotFound();
+//     }
+//});
 #endregion
 
 
 
 #region avec injection de dépendance de services
-//// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
-//app.MapPut("/person/{id:int}", async (
-//     [FromRoute]    int                 id,
+// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapPut("/person/{id:int}", async
+(
+     [FromRoute]    int                 id,
 
-//     [FromBody]     PersonnInputModel   p,
+     [FromBody]     PersonnInputModel   p,
 
-//     [FromServices] IPersonService      iPersonService) =>
-//     //[FromServices] IDistributedCache cache) =>
-//     {
-//          bool result = await iPersonService.Update(id, p);
+     [FromServices] IPersonService      iPersonService,                                          // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+     [FromServices] IDistributedCache   cache) =>
 
-//          if (result)
-//          {
-//               //await cache.RemoveAsync($"personne_{id}");
-//               return Results.NoContent();                                 // 204
-//          }
-//          else
-//          {
-//               return Results.NotFound();                                  // 404
-//          }
-//     })
-//     .Produces(204)                                                        // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
-//     .Produces(404)                                                        // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
-//     .WithTags("PersonManagement");                                        // Le tag permet de regrouper dans le swagger les Endpoint ayant une même logique
+{
+     bool result = await iPersonService.Update(id, p);
+
+     if (result)
+     {
+          await cache.RemoveAsync($"personne_{id}");
+          return Results.NoContent();                                                          // 204
+     }
+     else
+     {
+          return Results.NotFound();                                                           // 404
+     }
+})
+.Produces(204)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
+.Produces(404)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
+.WithTags("PersonManagement");                                                                 // Le tag permet de regrouper dans le swagger les Endpoint ayant une même logique
 #endregion
 
 
@@ -966,26 +973,29 @@ app.MapPut("/person/{id:int}", async
 
 
 #region avec injection de dépendance de services
-//// Avec Injection de dépendance de services ---------------------------------------------------------------------------------------------------------
-//app.MapDelete("/person/{id:int}", async (
-//     [FromRoute]    int            id,
+// Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapDelete("/person/{id:int}", async
+(
+     [FromRoute]    int                 id,
 
-//     [FromServices] IPersonService iPersonService) =>
-//     //[FromServices] IDistributedCache cache) =>
-//     {
-//          var result = await iPersonService.Delete(id);
+     [FromServices] IPersonService      iPersonService,                                        // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+     [FromServices] IDistributedCache   cache
+) =>
 
-//          if (result)
-//          {
-//               //await cache.RemoveAsync($"personne_{id}");
-//               return Results.NoContent();
-//          }
-//          else
-//          {
-//               return Results.NotFound();
-//          }
-//     })
-//     .WithTags("PersonManagement");
+{
+     var result = await iPersonService.Delete(id);
+
+     if (result)
+     {
+          await cache.RemoveAsync($"personne_{id}");
+          return Results.NoContent();
+     }
+     else
+     {
+          return Results.NotFound();
+     }
+})
+.WithTags("PersonManagement");
 #endregion
 
 
