@@ -1,10 +1,10 @@
 ﻿using FluentValidation;
 using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.DTO___Models;
+using MinimalAPIProfesional.DTO;
 
 namespace MinimalAPIProfesional.Validation
 {
-    public class PersonnInputModelValidator : AbstractValidator<PersonnInputModel>
+    public class PersonnInputModelValidator : AbstractValidator<PersonInputModel>
      {
           public PersonnInputModelValidator()
           {

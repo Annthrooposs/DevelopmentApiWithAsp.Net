@@ -2,7 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.DependencyInjection;
-using MinimalAPIProfesional.DTO___Models;
+using MinimalAPIProfesional.DTO;
 using MinimalAPIProfesional.Services;
 using System.ComponentModel.DataAnnotations;
 using System.Text.RegularExpressions;
@@ -71,7 +71,7 @@ namespace MinimalAPIProfesional.Endpoints
                // =================================================================================
                // Avec Injection de dépendance de services ----------------------------------------
                p_group.MapPost("", Post)                                                            // Cette méthode Post se trouve plus bas dans cette même classe et nous n'utilisons plus directement celle dans la classe "EFCorePersonService.cs"
-                    .Accepts<PersonnInputModel>(contentType: "application/json")                    // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
+                    .Accepts<PersonInputModel>(contentType: "application/json")                     // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
                     .Produces<PersonOutputModel>(contentType: "application/json")                   // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
                     .WithTags("PersonManagement");                                                  // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 
@@ -170,9 +170,9 @@ namespace MinimalAPIProfesional.Endpoints
           //                                                                                 !
           // =================================================================================
           private static async Task<IResult> Post(
-                    [FromBody]     PersonnInputModel             p,
+                    [FromBody]     PersonInputModel             p,
 
-                    [FromServices] IValidator<PersonnInputModel> validator,
+                    [FromServices] IValidator<PersonInputModel> validator,
                     [FromServices] IPersonService                iPersonService,
                     [FromServices] IDistributedCache             cache,
                     [FromServices] LinkGenerator                 linkGenerator,
@@ -220,7 +220,7 @@ namespace MinimalAPIProfesional.Endpoints
           private static async Task<IResult> Put(
                     [FromRoute]    int                 id,
 
-                    [FromBody]     PersonnInputModel   p,
+                    [FromBody]     PersonInputModel   p,
 
                     [FromServices] IPersonService      iPersonService,
                     [FromServices] IDistributedCache   cache)
