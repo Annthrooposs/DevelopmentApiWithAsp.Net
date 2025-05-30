@@ -1,25 +1,29 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Threading;
 
+
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.OutputCaching;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;                       // IDistributedCache "builder.Services.AddDistributedSqlServerCache(options => { ... });"
 using Microsoft.Extensions.Caching.Memory;                            // IMemoryCache "builder.Services.AddMemoryCache();"
+using Microsoft.Extensions.DependencyInjection;
 
 using FluentValidation;                                               // Services.AddValidatorsFromAssemblyContaining
 using FluentValidation.Results;                                       // ValidationResult
 
 using Serilog;                                                        //  .WriteTo.File / LoggerConfiguration 
 using Serilog.Core;
+using Swashbuckle.AspNetCore.SwaggerUI;
 
 using MinimalAPIProfesional;
-using MinimalAPIProfesional.Validation;
-using MinimalAPIProfesional.Data.Models;
 using MinimalAPIProfesional.Data;                                     // ApiDbContext
-using MinimalAPIProfesional.Services;
-using MinimalAPIProfesional.Endpoints;
+using MinimalAPIProfesional.Data.Models;
 using MinimalAPIProfesional.DTO;
+using MinimalAPIProfesional.Endpoints;
+using MinimalAPIProfesional.Services;
+using MinimalAPIProfesional.Validation;
+
 
 
 // ====================================================================================================================================================================================================
@@ -124,11 +128,16 @@ builder.Services.AddDbContext<ApiDbContext>(opt => opt.UseSqlServer(builder.Conf
 //                                                                      //     - Singleton     : 1 instance permanente (pour toutes les requêtes)
 //                                                                      //     - AddScoped     : 1 instance par requête
 //                                                                      //     - AddTranscient : 1 instance à chaque fois que ce service est appelé même si c'est au sein de la même requête
-builder.Services.MapPersonServices();                                 // Remplace ce qui est au-dessus et est utilisé avec la classe 'PersonEndpoints.cs' qui prend en charge l'externalisation des Endpoints du 'program.cs'
+builder.Services.MapPersonServices();                                 // (Voir la classe "PersonEndpoints"). Remplace ce qui est au-dessus et est utilisé avec la classe 'PersonEndpoints.cs' qui prend en charge l'externalisation des Endpoints du 'program.cs'
 
 
-builder.Services.AddEndpointsApiExplorer();                           // Service Microsoft permettant d'explorer les différents Enpoints pour fournir l'information à Swagger
-builder.Services.AddSwaggerGen();                                     // Service utilisant le package Swagger
+
+// ATTENTION - Avant .Net 9 : la façon de faire ci-dessous est celle utilisée avant .NET 9.0 ! Depuis .NET 9.0, Microsoft fournit  une implémentation maison réalisée pour OpenAPI sans aucun package supplémentaire (sauf....UI. Voir plus bas)
+//builder.Services.AddSwaggerGen();                                     // Service utilisant le package Swagger (Service permettant de générer le fichier Swagger)
+//builder.Services.AddEndpointsApiExplorer();                           // Service Microsoft permettant d'explorer les différents Enpoints pour fournir l'information à Swagger
+
+// ATTENTION - à partir de .Net 9 : Voici la façon de faire pour .NET 9.0 et supérieur (sans package supplémentaire) :
+builder.Services.AddOpenApi();                                        // Service Microsoft permettant d'explorer les différents Enpoints pour fournir l'information à Swagger
 
 
 
@@ -137,11 +146,22 @@ var app = builder.Build();
 
 
 
-// Génération du fichier swagger.json et de l'interface graphique exposant le fichier------------------------------------------------------------------------------------------------------------------
+// ATTENTION - Avant .Net 9 : Génération du fichier swagger.json et de l'interface graphique exposant le fichier---------------------------------------------------------------------------------------
+//if (app.Environment.IsDevelopment())
+//{
+//     app.UseSwagger();                                                             // Génère le fichier Swagger.json nécessaire pour les clients voulant consommer l'API
+//     app.UseSwaggerUI();                                                           // Génère l'interface graphique qui va lire le fichier Swagger.json (pour une interface plus conviviale sous forme de page HTML)
+//}
+
+// ATTENTION - à partir de .Net 9 : Génération du fichier /openapi/v1.json.json et de l'interface graphique exposant le fichier------------------------------------------------------------------------
 if (app.Environment.IsDevelopment())
 {
-     app.UseSwagger();                                                // Génère le fichier Swagger.json nécessaire pour les clients voulant consommer l'API
-     app.UseSwaggerUI();                                              // Génère l'interface graphique qui va lire le fichier Swagger.json (pour une interface plus conviviale sous forme de page HTML)
+     app.MapOpenApi();                                                               // Permet de générer le fichier Swagger.json et l'interface graphique qui va lire le fichier Swagger.json (pour une interface plus conviviale sous forme de page HTML)
+     //app.UseSwaggerUI(opt => opt.SwaggerEndpoint("/openapi/v1.json", "v1"));         // Génère l'interface graphique qui va lire le fichier Swagger.json (pour une interface plus conviviale sous forme de page HTML)
+     app.UseSwaggerUI(options =>
+     {
+          options.ConfigObject.Urls = [new UrlDescriptor { Name = "Your app name v1", Url = "/openapi/v1.json" }];
+     });
 }
 
 
@@ -177,9 +197,14 @@ if (app.Environment.IsDevelopment())
 
 
 
-//// Regroupent des Endpoints concernant les "Person" -------------------------------------------------------------------------------------------------------------------------------------------------
-//app.MapGroup("/person")
-//     .MapPersonEndpoints();
+// Regroupent des Endpoints concernant les "Person" -------------------------------------------------------------------------------------------------------------------------------------------------
+app.MapGroup("/person")
+     .MapPersonEndpoints();
+
+
+
+// 
+//app.MapOpenApi();
 
 
 
@@ -405,69 +430,69 @@ if (app.Environment.IsDevelopment())
 
 #region avec injection de dépendance de services
 // Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapGet("/person", async
-(
-     //[FromServices] IDistributedCache cache,
-     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
-) =>
-{
+//app.MapGet("/person", async
+//(
+//     //[FromServices] IDistributedCache cache,
+//     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+//) =>
+//{
 
-     //var lp = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                     // J'essaie en premier de récupérer la Person à partir du cache
+//     //var lp = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                     // J'essaie en premier de récupérer la Person à partir du cache
 
-     //if (lp is null)
-     //{
-     List<PersonOutputModel> lp = await iPersonService.GetAll();                               // Sinon j'essaie à partir de la base de données
+//     //if (lp is null)
+//     //{
+//     List<PersonOutputModel> lp = await iPersonService.GetAll();                               // Sinon j'essaie à partir de la base de données
 
-     if (lp is null)
-     {
-          return Results.NotFound();
-     }
-     else
-     {
-          //await cache.SetAsync($"personne_{id}", lp);                                        // Je stocke la Person dans le cache
-          return Results.Ok(lp);
-     }
-     //}
-     //else
-     //{
-     //     return Results.Ok(lp);
-     //}
-})
-.WithTags("PersonManagement8888");                                                             // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+//     if (lp is null)
+//     {
+//          return Results.NotFound();
+//     }
+//     else
+//     {
+//          //await cache.SetAsync($"personne_{id}", lp);                                        // Je stocke la Person dans le cache
+//          return Results.Ok(lp);
+//     }
+//     //}
+//     //else
+//     //{
+//     //     return Results.Ok(lp);
+//     //}
+//})
+//.WithTags("PersonManagement8888");                                                             // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 
 
 
-app.MapGet("/person/{id:int}", async
-(
-     [FromRoute] int id,
+//app.MapGet("/person/{id:int}", async
+//(
+//     [FromRoute] int id,
 
-     //[FromServices] IDistributedCache cache,
-     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
-) =>
-{
+//     //[FromServices] IDistributedCache cache,
+//     [FromServices] IPersonService iPersonService                                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+//) =>
+//{
 
-     //var p = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                      // J'essaie en premier de récupérer la Person à partir du cache
+//     //var p = await cache.GetAsync<PersonOutputModel>($"personne_{id}");                      // J'essaie en premier de récupérer la Person à partir du cache
 
-     //if (p is null)
-     //{
-     PersonOutputModel? p = await iPersonService.GetById(id);                                  // Sinon j'essaie à partir de la base de données
+//     //if (p is null)
+//     //{
+//     PersonOutputModel? p = await iPersonService.GetById(id);                                  // Sinon j'essaie à partir de la base de données
 
-     if (p is null)
-     {
-          return Results.NotFound();
-     }
-     else
-     {
-          //await cache.SetAsync($"personne_{id}", p);                                         // Je stocke la Person dans le cache
-          return Results.Ok(p);
-     }
-     //}
-     //else
-     //{
-     //     return Results.Ok(p);
-     //}
-})
-.WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+//     if (p is null)
+//     {
+//          return Results.NotFound();
+//     }
+//     else
+//     {
+//          //await cache.SetAsync($"personne_{id}", p);                                         // Je stocke la Person dans le cache
+//          return Results.Ok(p);
+//     }
+//     //}
+//     //else
+//     //{
+//     //     return Results.Ok(p);
+//     //}
+//})
+//.WithTags("PersonManagement");                                                                 // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 #endregion
 
 
@@ -644,39 +669,39 @@ app.MapGet("/person/{id:int}", async
 
 #region Injection de dépendance de services
 // Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapPost("/person", async
-(
-     [FromBody]     PersonInputModel                   p,
+//app.MapPost("/person", async
+//(
+//     [FromBody]     PersonInputModel                   p,
 
-     [FromServices] IValidator<PersonInputModel>       validator,
-     //[FromServices] IDistributedCache cache,
-     [FromServices] IPersonService                     iPersonService,                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+//     [FromServices] IValidator<PersonInputModel>       validator,
+//     //[FromServices] IDistributedCache cache,
+//     [FromServices] IPersonService                     iPersonService,                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
 
-     CancellationToken token
-) =>
-{
-     var result = validator.Validate(p);
+//     CancellationToken token
+//) =>
+//{
+//     var result = validator.Validate(p);
 
-     if (!result.IsValid)
-     {
-          return Results.BadRequest(result.Errors.Select(e => new
-          {
-               Message        = e.ErrorMessage,
-               PropertyName   = e.PropertyName,
-               Severity       = e.Severity
-          }));
-     }
-     else
-     {
-          await iPersonService.Add(p);
+//     if (!result.IsValid)
+//     {
+//          return Results.BadRequest(result.Errors.Select(e => new
+//          {
+//               Message        = e.ErrorMessage,
+//               PropertyName   = e.PropertyName,
+//               Severity       = e.Severity
+//          }));
+//     }
+//     else
+//     {
+//          await iPersonService.Add(p);
 
-          //await cache.SetAsync($"personne_{p.Id}", p);                                            // Je stocke la Person dans le cache
-          return Results.Ok(p);
-     }
-})
-.Accepts<PersonInputModel>(contentType: "application/json")                                        // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
-.Produces<PersonOutputModel>(contentType: "application/json")                                       // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
-.WithTags("PersonManagement");                                                                      // Permet de regrouper les Endpoints par 'Tag' dans Swagger
+//          //await cache.SetAsync($"personne_{p.Id}", p);                                            // Je stocke la Person dans le cache
+//          return Results.Ok(p);
+//     }
+//})
+//.Accepts<PersonInputModel>(contentType: "application/json")                                         // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
+//.Produces<PersonOutputModel>(contentType: "application/json")                                       // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
+//.WithTags("PersonManagement");                                                                      // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 #endregion
 
 
@@ -855,32 +880,32 @@ app.MapPost("/person", async
 
 #region avec injection de dépendance de services
 // Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapPut("/person/{id:int}", async
-(
-     [FromRoute]    int                 id,
+//app.MapPut("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-     [FromBody]     PersonInputModel    p,
+//     [FromBody]     PersonInputModel    p,
 
-     [FromServices] IPersonService      iPersonService,                                          // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
-     [FromServices] IDistributedCache   cache
-) =>
+//     [FromServices] IPersonService      iPersonService,                                          // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+//     [FromServices] IDistributedCache   cache
+//) =>
 
-{
-     bool result = await iPersonService.Update(id, p);
+//{
+//     bool result = await iPersonService.Update(id, p);
 
-     if (result)
-     {
-          await cache.RemoveAsync($"personne_{id}");
-          return Results.NoContent();                                                          // 204
-     }
-     else
-     {
-          return Results.NotFound();                                                           // 404
-     }
-})
-.Produces(204)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
-.Produces(404)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
-.WithTags("PersonManagement");                                                                 // Le tag permet de regrouper dans le swagger les Endpoint ayant une même logique
+//     if (result)
+//     {
+//          await cache.RemoveAsync($"personne_{id}");
+//          return Results.NoContent();                                                          // 204
+//     }
+//     else
+//     {
+//          return Results.NotFound();                                                           // 404
+//     }
+//})
+//.Produces(204)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
+//.Produces(404)                                                                                 // Permet d'indiquer dans Swagger que ce code de retour est utilisé (sinon il n'indiquera que le '200')
+//.WithTags("PersonManagement");                                                                 // Le tag permet de regrouper dans le swagger les Endpoint ayant une même logique
 #endregion
 
 
@@ -975,28 +1000,28 @@ app.MapPut("/person/{id:int}", async
 
 #region avec injection de dépendance de services
 // Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapDelete("/person/{id:int}", async
-(
-     [FromRoute]    int                 id,
+//app.MapDelete("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-     [FromServices] IPersonService      iPersonService,                                        // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
-     [FromServices] IDistributedCache   cache
-) =>
+//     [FromServices] IPersonService      iPersonService,                                        // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
+//     [FromServices] IDistributedCache   cache
+//) =>
 
-{
-     var result = await iPersonService.Delete(id);
+//{
+//     var result = await iPersonService.Delete(id);
 
-     if (result)
-     {
-          await cache.RemoveAsync($"personne_{id}");
-          return Results.NoContent();
-     }
-     else
-     {
-          return Results.NotFound();
-     }
-})
-.WithTags("PersonManagement");
+//     if (result)
+//     {
+//          await cache.RemoveAsync($"personne_{id}");
+//          return Results.NoContent();
+//     }
+//     else
+//     {
+//          return Results.NotFound();
+//     }
+//})
+//.WithTags("PersonManagement");
 #endregion
 
 
