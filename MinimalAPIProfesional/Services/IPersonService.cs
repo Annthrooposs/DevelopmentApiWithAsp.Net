@@ -1,14 +1,16 @@
-﻿using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.DTO___Models;
+﻿
+using MinimalAPIProfesional.Data.Models;
+using MinimalAPIProfesional.DTO;
 
-namespace MinimalAPIProfesional.Services
+
+
+namespace MinimalAPIProfesional.Services;
+
+public interface IPersonService
 {
-     public interface IPersonService
-     {
-          Task<List<PersonOutputModel>>      GetAll();
-          Task<PersonOutputModel?>           GetById(int id);
-          Task<PersonOutputModel>            Add(PersonnInputModel person);
-          Task<bool>                         Update(int id, PersonnInputModel person);
-          Task<bool>                         Delete(int id);
-     }
+     Task<List<PersonOutputModel>>      GetAll();
+     Task<PersonOutputModel?>           GetById(int id);
+     Task<PersonOutputModel>            Add(PersonInputModel person);
+     Task<bool>                         Update(int id, PersonInputModel person);
+     Task<bool>                         Delete(int id);
 }

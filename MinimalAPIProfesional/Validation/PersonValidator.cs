@@ -1,16 +1,16 @@
-﻿using FluentValidation;
+﻿
+using FluentValidation;
 using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.DTO___Models;
+using MinimalAPIProfesional.DTO;
 
-namespace MinimalAPIProfesional.Validation
+namespace MinimalAPIProfesional.Validation;
+
+public class PersonValidator : AbstractValidator<PersonInputModel>
 {
-    public class PersonValidator : AbstractValidator<Person>
+     public PersonValidator()
      {
-          public PersonValidator()
-          {
-               RuleFor(p => p.FirstName).NotEmpty();
-               RuleFor(p => p.LastName).NotEmpty();
-               //RuleFor(p => p.Birthday).LessThanOrEqualTo(DateTime.Now);
-          }
+          RuleFor(p => p.FirstName).NotEmpty();
+          RuleFor(p => p.LastName).NotEmpty();
+          RuleFor(p => p.Birthday).LessThanOrEqualTo(DateTime.Now);
      }
 }
