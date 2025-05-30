@@ -115,6 +115,8 @@ public class EFCorePersonService : IPersonService
      // ===============================================================================================================================================================================================
      // Permet de transformer l'Output renvoyé en passant d'un Model à un autre manuellement ----------------------------------------------------------------------------------------------------------
      // Equivalent à l'outil communautaire "AutoMapper" : plus rapide mais moins ~sûr car nous pouvons 'oublier' une transformation -------------------------------------------------------------------
+     //                                     ----------
+     // ATTENTION : il est préférable de faire cette transformation dans le service et non dans le contrôleur, car le service est réutilisable par d'autres contrôleurs (ex : pour les tests unitaires)
      private PersonOutputModel ToOutputModel(Person dbPerson) => new PersonOutputModel
                (
                     dbPerson.Id,
