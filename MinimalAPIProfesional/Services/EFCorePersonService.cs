@@ -4,7 +4,7 @@ using Microsoft.Extensions.Configuration.UserSecrets;
 
 using MinimalAPIProfesional.Data;
 using MinimalAPIProfesional.Data.Models;
-using MinimalAPIProfesional.DTO___Models;
+using MinimalAPIProfesional.DTO;
 
 
 
@@ -168,19 +168,25 @@ public class EFCorePersonService : IPersonService
 
 
      // MapPOST ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public async Task<PersonOutputModel> Add(PersonnInputModel p_person)
+     public async Task<PersonOutputModel> Add(PersonInputModel p_personInputModel)
      {
           Person? dbPerson = new Person
           {
-               FirstName = p_person.FirstName,
-               LastName  = p_person.LastName,
-               Birthday  = p_person.Birthday.GetValueOrDefault()
+               FirstName = p_personInputModel.FirstName,
+               LastName  = p_personInputModel.LastName,
+               Birthday  = p_personInputModel.Birthday.GetValueOrDefault()
           };
           
                     _context.PersonTable.Add(dbPerson);
           await     _context.SaveChangesAsync();
 
-          return ToOutputModel(dbPerson);
+
+          return new PersonOutputModel
+          (
+               dbPerson.Id,
+               $"{dbPerson.FirstName} {dbPerson.LastName}",
+               dbPerson.Birthday == DateTime.MinValue ? null : dbPerson.Birthday
+          );
      }
 
 
@@ -188,13 +194,13 @@ public class EFCorePersonService : IPersonService
 
 
      // MapPUT ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public async Task<bool> Update(int p_id, PersonnInputModel p_person)
+     public async Task<bool> Update(int p_id, PersonInputModel p_personInputModel)
      {
           return await _context.PersonTable
                               .Where(w => w.Id == p_id)
-                              .ExecuteUpdateAsync(eua => eua.SetProperty(sp => sp.FirstName, p_person.FirstName)
-                                                            .SetProperty(sp => sp.LastName, p_person.LastName)
-                                                            .SetProperty(sp => sp.Birthday, p_person.Birthday)) > 0;
+                              .ExecuteUpdateAsync(eua => eua.SetProperty(sp => sp.FirstName,   p_personInputModel.FirstName)
+                                                            .SetProperty(sp => sp.LastName,    p_personInputModel.LastName)
+                                                            .SetProperty(sp => sp.Birthday,    p_personInputModel.Birthday)) > 0;
 
 
 

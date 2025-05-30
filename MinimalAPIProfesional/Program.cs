@@ -18,8 +18,8 @@ using MinimalAPIProfesional.Validation;
 using MinimalAPIProfesional.Data.Models;
 using MinimalAPIProfesional.Data;                                     // ApiDbContext
 using MinimalAPIProfesional.Services;
-using MinimalAPIProfesional.DTO___Models;
 using MinimalAPIProfesional.Endpoints;
+using MinimalAPIProfesional.DTO;
 
 
 // ====================================================================================================================================================================================================
@@ -93,11 +93,11 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 
 // Distributed Cache for Redis ------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-//builder.Services.AddStackExchangeRedisCache(options =>
-//{
-//     options.Configuration         = builder.Configuration.GetConnectionString("ConnectionStringRedis_DistributedCache");
-//     options.InstanceName          = "MinimalAPIProfesional_";                                                                                        // Préfixe pour les clefs stockées dans Redis
-//});
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+     options.Configuration = builder.Configuration.GetConnectionString("ConnectionStringRedis_DistributedCache");
+     options.InstanceName = "MinimalAPIProfesional_";                                                                                        // Préfixe pour les clefs stockées dans Redis
+});
 
 
 
@@ -568,38 +568,38 @@ app.MapGet("/person/{id:int}", async
 
 #region avec memory cache (manuel)
 // Avec utilisation d'une base de données -------------------------------------------------------------------------------------------------------------------------------------------------------------
-app.MapPost("/person", async
-(
-     [FromBody] Person p,
+//app.MapPost("/person", async
+//(
+//     [FromBody] Person p,
 
-     [FromServices] IValidator<Person> validator,
-     [FromServices] ApiDbContext context,
-     [FromServices] IMemoryCache cache,
+//     [FromServices] IValidator<Person> validator,
+//     [FromServices] ApiDbContext context,
+//     [FromServices] IMemoryCache cache,
 
-                    CancellationToken token
-) =>
-{
+//                    CancellationToken token
+//) =>
+//{
 
-     FluentValidation.Results.ValidationResult result = validator.Validate(p);
+//     FluentValidation.Results.ValidationResult result = validator.Validate(p);
 
-     if (!result.IsValid)
-     {
-          return Results.BadRequest(result.Errors.Select(e => new
-          {
-               Message = e.ErrorMessage,
-               PropertyName = e.PropertyName,
-               Severity = e.Severity
-          }));
-     }
-     else
-     {
-          await context.PersonTable.AddAsync(p, token); ;
-          await context.SaveChangesAsync(token);
+//     if (!result.IsValid)
+//     {
+//          return Results.BadRequest(result.Errors.Select(e => new
+//          {
+//               Message = e.ErrorMessage,
+//               PropertyName = e.PropertyName,
+//               Severity = e.Severity
+//          }));
+//     }
+//     else
+//     {
+//          await context.PersonTable.AddAsync(p, token); ;
+//          await context.SaveChangesAsync(token);
 
-          cache.Set($"personne_{p.Id}", p);                                                    // Je stocke la Person dans le cache
-          return Results.Ok(p);
-     }
-});
+//          cache.Set($"personne_{p.Id}", p);                                                    // Je stocke la Person dans le cache
+//          return Results.Ok(p);
+//     }
+//});
 #endregion
 
 
@@ -646,9 +646,9 @@ app.MapPost("/person", async
 // Avec Injection de dépendance de services -----------------------------------------------------------------------------------------------------------------------------------------------------------
 app.MapPost("/person", async
 (
-     [FromBody]     PersonnInputModel                  p,
+     [FromBody]     PersonInputModel                   p,
 
-     [FromServices] IValidator<PersonnInputModel>      validator,
+     [FromServices] IValidator<PersonInputModel>       validator,
      //[FromServices] IDistributedCache cache,
      [FromServices] IPersonService                     iPersonService,                              // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
 
@@ -674,7 +674,7 @@ app.MapPost("/person", async
           return Results.Ok(p);
      }
 })
-.Accepts<PersonnInputModel>(contentType: "application/json")                                        // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
+.Accepts<PersonInputModel>(contentType: "application/json")                                        // Permet d'indiquer que l'Endpoint accepte un 'PersonnInputModel'   avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Request body" dand Swagger
 .Produces<PersonOutputModel>(contentType: "application/json")                                       // Permet d'indiquer que l'Endpoint retourne un 'PersonnOutputModel' avec un 'Media Type' (dans Swagger) de type json : 'application/json' (voir la partie "Responses" dand Swagger
 .WithTags("PersonManagement");                                                                      // Permet de regrouper les Endpoints par 'Tag' dans Swagger
 #endregion
@@ -755,36 +755,36 @@ app.MapPost("/person", async
 
 #region avec memory cache (manuel)
 // Avec memory cache manuel -------------------------------------------------------------------------------------------------------------------------
-app.MapPut("/person/{id:int}", async
-(
-     [FromRoute]    int                 id,
+//app.MapPut("/person/{id:int}", async
+//(
+//     [FromRoute]    int                 id,
 
-     [FromBody]     Person              p,
+//     [FromBody]     Person              p,
 
-     [FromServices] ApiDbContext        context,
-     [FromServices] IMemoryCache        cache,
+//     [FromServices] ApiDbContext        context,
+//     [FromServices] IMemoryCache        cache,
 
-                    CancellationToken   token
-) =>
-{
+//                    CancellationToken   token
+//) =>
+//{
 
-     var result = await context.PersonTable
-                    .Where(w => w.Id == id)
-                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
-                                                  .SetProperty(pers => pers.FirstName, p.FirstName), token);
+//     var result = await context.PersonTable
+//                    .Where(w => w.Id == id)
+//                    .ExecuteUpdateAsync(per => per.SetProperty(pers => pers.LastName, p.LastName)
+//                                                  .SetProperty(pers => pers.FirstName, p.FirstName), token);
 
-     if (result > 0)
-     {
+//     if (result > 0)
+//     {
 
-          cache.Remove($"personne_{id}");         // Suppresion de cette clef du cache (préférable à une mise à jour du cache car cela permet de ne pas avoir à gérer la cohérence du cache)
-          return Results.NoContent();
-     }
-     else
-     {
+//          cache.Remove($"personne_{id}");         // Suppresion de cette clef du cache (préférable à une mise à jour du cache car cela permet de ne pas avoir à gérer la cohérence du cache)
+//          return Results.NoContent();
+//     }
+//     else
+//     {
 
-          return Results.NotFound();
-     }
-});
+//          return Results.NotFound();
+//     }
+//});
 #endregion
 
 
@@ -859,10 +859,11 @@ app.MapPut("/person/{id:int}", async
 (
      [FromRoute]    int                 id,
 
-     [FromBody]     PersonnInputModel   p,
+     [FromBody]     PersonInputModel    p,
 
      [FromServices] IPersonService      iPersonService,                                          // Utilisation de l'interface 'IPersonService' pour récupérer les données de la base de données ou du cache remplaçant l'utilisation direct de "ApiDbContext" dans les Endpoints
-     [FromServices] IDistributedCache   cache) =>
+     [FromServices] IDistributedCache   cache
+) =>
 
 {
      bool result = await iPersonService.Update(id, p);
