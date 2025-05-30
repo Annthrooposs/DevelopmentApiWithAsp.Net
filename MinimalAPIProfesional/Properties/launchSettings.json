@@ -2,7 +2,6 @@
   "profiles": {
     "MinimalAPIProfesional_d": {
       "commandName": "Project",
-      "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
@@ -10,7 +9,6 @@
     },
     "MinimalApiProfesional_p": {
       "commandName": "Project",
-      "launchBrowser": false,
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Production"
       },
