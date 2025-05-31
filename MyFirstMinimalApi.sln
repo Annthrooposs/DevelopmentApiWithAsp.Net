@@ -13,7 +13,9 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Mod3ASPNET_byIde", "Mod3ASP
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Les bases", "Les bases\Les bases.csproj", "{E0E48F3A-3B80-9FA5-43DC-791FA2A8BDB9}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP1 - Premiere Minimal API", "TP1 - Premiere Minimal API\TP1 - Premiere Minimal API.csproj", "{834EEDB8-62CD-4158-8628-ED4B75F88F98}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP1-PremiereMinimalAPI", "TP1 - Premiere Minimal API\TP1-PremiereMinimalAPI.csproj", "{834EEDB8-62CD-4158-8628-ED4B75F88F98}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP2 - Améliorer la Minimal API du TP1", "TP2 - Améliorer la Minimal API du TP1\TP2 - Améliorer la Minimal API du TP1.csproj", "{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -45,6 +47,10 @@ Global
 		{834EEDB8-62CD-4158-8628-ED4B75F88F98}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{834EEDB8-62CD-4158-8628-ED4B75F88F98}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{834EEDB8-62CD-4158-8628-ED4B75F88F98}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

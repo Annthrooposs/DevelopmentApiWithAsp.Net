@@ -4,7 +4,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>TP1___Premiere_Minimal_API</RootNamespace>
+    <RootNamespace>TP1_PremiereMinimalAPI</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

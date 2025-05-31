@@ -1,0 +1,6 @@
+@TP2___Améliorer_la_Minimal_API_du_TP1_HostAddress = http://localhost:5007
+
+GET {{TP2___Améliorer_la_Minimal_API_du_TP1_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

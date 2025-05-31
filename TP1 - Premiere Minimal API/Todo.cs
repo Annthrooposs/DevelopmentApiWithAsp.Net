@@ -1,5 +1,4 @@
-﻿namespace TP1___Premiere_Minimal_API;
-
+﻿namespace TP1_PremiereMinimalAPI;
 
 
 public record class Todo(
