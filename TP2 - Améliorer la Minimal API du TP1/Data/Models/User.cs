@@ -1,13 +1,9 @@
 ﻿
-using Microsoft.EntityFrameworkCore;
-
-using MinimalAPIProfesional.Data.Models;
+namespace TP2_AméliorerlaMinimalAPIduTP1.Data.Models;
 
 
 
-namespace MinimalAPIProfesional.Data;
-
-public class ApiDbContext : DbContext
+public class User
 {
 
      // ===============================================================================================================================================================================================
@@ -45,7 +41,10 @@ public class ApiDbContext : DbContext
      //                                                                                      Properties                                                                                               !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     public DbSet<Person> PersonTable { get; set; }
+     public    int                 Id             { get; set; }
+     public    string              Name           { get; set; } = string.Empty;
+     public    string              Token          { get; set; } = string.Empty;
+     public    ICollection<Todo>   Todo           { get; set; }
 
 
 
@@ -86,10 +85,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Constructors                                                                                             !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Default constructor ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)     // Remplace "protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)" (voir plus bas) pour rendre la connexion à la base de données configurable depuis l'extérieur et donc dynamique
-     {
-     }
 
 
 
@@ -110,34 +105,6 @@ public class ApiDbContext : DbContext
      //                                                                                   Synchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Configuration de l'accès aux bases de données -------------------------------------------------------------------------------------------------------------------------------------------------
-     //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-     //{
-     //     // SqlLite
-     //     //optionsBuilder.UseSqlite("Filename=api.db");
-
-     //     // Sql Server
-     //     optionsBuilder.UseSqlServer("Data Source = localhost; Initial Catalog = api_d; Trusted_Connection = True; Trust Server Certificate = true; Integrated Security = true; MultipleActiveResultSets = true");
-
-     //     base.OnConfiguring(optionsBuilder);
-     //}
-
-
-
-
-
-     // Création du modèle ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     protected override void OnModelCreating(ModelBuilder modelBuilder)
-     {
-          modelBuilder.Entity<Person>(c =>
-          {
-               c.ToTable("Personnes");
-               c.Property(p => p.FirstName).HasMaxLength(256);
-               c.Property(p => p.LastName).HasMaxLength(256);
-               //c.Ignore(p => p.Birthday);
-          });
-          //base.OnModelCreating(modelBuilder);
-     }
 
 
 
@@ -148,6 +115,35 @@ public class ApiDbContext : DbContext
      //                                                                                  Asynchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
+
+
+
+
+
+     // ===============================================================================================================================================================================================
+     //                                                                                                                                                                                               !
+     //                                                                                       Endpoints                                                                                               !
+     //                                                                                                                                                                                               !
+     // ===============================================================================================================================================================================================
+     // MapGET ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+     // MapPOST ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+     // MapPUT ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+
+
+
+     // MapDELETE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 

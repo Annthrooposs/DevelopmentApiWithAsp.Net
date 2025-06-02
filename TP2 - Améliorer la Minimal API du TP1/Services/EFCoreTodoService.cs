@@ -1,13 +1,15 @@
 ﻿
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration.UserSecrets;
+using TP2_AméliorerlaMinimalAPIduTP1.Data;
+using TP2_AméliorerlaMinimalAPIduTP1.Data.Models;
+using TP2_AméliorerlaMinimalAPIduTP1.DTO;
 
-using MinimalAPIProfesional.Data.Models;
 
 
+namespace TP2_AméliorerlaMinimalAPIduTP1.Services;
 
-namespace MinimalAPIProfesional.Data;
-
-public class ApiDbContext : DbContext
+public class EFCoreTodoService : ITodoService
 {
 
      // ===============================================================================================================================================================================================
@@ -25,6 +27,7 @@ public class ApiDbContext : DbContext
      //                                                                                       Fields                                                                                                  !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
+     private readonly ApiDbContext _context;
 
 
 
@@ -45,7 +48,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Properties                                                                                               !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     public DbSet<Person> PersonTable { get; set; }
 
 
 
@@ -86,9 +88,9 @@ public class ApiDbContext : DbContext
      //                                                                                      Constructors                                                                                             !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Default constructor ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)     // Remplace "protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)" (voir plus bas) pour rendre la connexion à la base de données configurable depuis l'extérieur et donc dynamique
+     public EFCoreTodoService(ApiDbContext p_context)                                                                                                                                                 // Nous récupérons en paramètre le Service ApiDbContext injecté par le framework ASP.NET Core
      {
+          _context = p_context;
      }
 
 
@@ -110,34 +112,16 @@ public class ApiDbContext : DbContext
      //                                                                                   Synchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Configuration de l'accès aux bases de données -------------------------------------------------------------------------------------------------------------------------------------------------
-     //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-     //{
-     //     // SqlLite
-     //     //optionsBuilder.UseSqlite("Filename=api.db");
-
-     //     // Sql Server
-     //     optionsBuilder.UseSqlServer("Data Source = localhost; Initial Catalog = api_d; Trusted_Connection = True; Trust Server Certificate = true; Integrated Security = true; MultipleActiveResultSets = true");
-
-     //     base.OnConfiguring(optionsBuilder);
-     //}
-
-
-
-
-
-     // Création du modèle ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     protected override void OnModelCreating(ModelBuilder modelBuilder)
-     {
-          modelBuilder.Entity<Person>(c =>
-          {
-               c.ToTable("Personnes");
-               c.Property(p => p.FirstName).HasMaxLength(256);
-               c.Property(p => p.LastName).HasMaxLength(256);
-               //c.Ignore(p => p.Birthday);
-          });
-          //base.OnModelCreating(modelBuilder);
-     }
+     // Permet de transformer l'Output renvoyé en passant d'un Model à un autre manuellement ----------------------------------------------------------------------------------------------------------
+     // Equivalent à l'outil communautaire "AutoMapper" : plus rapide mais moins ~sûr car nous pouvons 'oublier' une transformation -------------------------------------------------------------------
+     //                                     ----------
+     // ATTENTION : il est préférable de faire cette transformation dans le service et non dans le contrôleur, car le service est réutilisable par d'autres contrôleurs (ex : pour les tests unitaires)
+     private TodoOutputDto ToOutputModel(Todo dbTodo) => new TodoOutputModel
+               (
+                    dbTodo.Id,
+                    $"{dbTodo.FirstName} {dbTodo.LastName}",
+                    dbTodo.Birthday == DateTime.MinValue ? null : dbTodo.Birthday
+               );
 
 
 
@@ -148,6 +132,102 @@ public class ApiDbContext : DbContext
      //                                                                                  Asynchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
+
+
+
+
+
+     // ===============================================================================================================================================================================================
+     //                                                                                                                                                                                               !
+     //                                                                                       Endpoints                                                                                               !
+     //                                                                                                                                                                                               !
+     // ===============================================================================================================================================================================================
+     // MapGET ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public async Task<List<TodoOutputDto>> GetAll()
+     {
+          return (await _context.TodoTable.ToListAsync()).ConvertAll(ToOutputModel);
+     }
+
+
+
+     public async Task<TodoOutputDto?> GetById(int p_id)
+     {
+          Todo? dbTodon = await _context.TodoTable.Where(w => w.Id == p_id).FirstOrDefaultAsync();
+
+          if (dbTodon is not null)
+          {
+               return ToOutputModel(dbTodon);
+          }
+          else
+          {
+               return null;
+          }
+     }
+
+
+
+
+
+     // MapPOST ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public async Task<TodoOutputDto> Add(TodoInputDto p_TodoInputModel)
+     {
+          Todo? dbTodo = new Todo
+          {
+               FirstName = p_TodoInputModel.FirstName,
+               LastName  = p_TodoInputModel.LastName,
+               Birthday  = p_TodoInputModel.Birthday.GetValueOrDefault()
+          };
+          
+                    _context.TodoTable.Add(dbTodo);
+          await     _context.SaveChangesAsync();
+
+
+          return new TodoOutputModel
+          (
+               dbTodo.Id,
+               $"{dbTodo.FirstName} {dbTodo.LastName}",
+               dbTodo.Birthday == DateTime.MinValue ? null : dbTodo.Birthday
+          );
+     }
+
+
+
+
+
+     // MapPUT ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public async Task<bool> Update(int p_id, TodoInputDto p_TodoInputModel)
+     {
+          return await _context.TodoTable
+                              .Where(w => w.Id == p_id)
+                              .ExecuteUpdateAsync(eua => eua.SetProperty(sp => sp.FirstName,   p_TodoInputModel.FirstName)
+                                                            .SetProperty(sp => sp.LastName,    p_TodoInputModel.LastName)
+                                                            .SetProperty(sp => sp.Birthday,    p_TodoInputModel.Birthday)) > 0;
+
+
+
+          // ATTENTION : voici une version plus élaborée décrite dans : Développement d'API avec ASP.NET / TP 2 / Corrigé (part 3) / 08:45
+          // -----------------------------------------------------------------------------------------------------------------------------
+
+          // var dbTodo = await ContextBoundObject.Todos.FirstOrDefaultAsync(testc => testc.Id == id && testc.UserId == UserSecretsIdAttribute);
+          // if (dbTodo is null) return false;
+
+          // dbTodo.Title     = item.Title;
+          // dbTodo.StartDate = item.StartDate ?? dbTodo.SartDate;
+          // dbTodo.EndDate   = item.EndDate ?? dbTodo.EndDate;
+
+          // context.Todos.Update(dbTodo);
+          // return await context.SaveChangesAsync() > 0
+     }
+
+
+
+
+
+     // MapDELETE -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public async Task<bool> Delete(int p_id)
+     {
+          return await _context.TodoTable.Where(w => w.Id == p_id).ExecuteDeleteAsync() > 0;
+     }
 
 
 

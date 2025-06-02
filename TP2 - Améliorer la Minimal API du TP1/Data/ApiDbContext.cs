@@ -1,11 +1,10 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
-using MinimalAPIProfesional.Data.Models;
-
+using TP2_AméliorerlaMinimalAPIduTP1.Data.Models;
 
 
-namespace MinimalAPIProfesional.Data;
+
+namespace Data;
 
 public class ApiDbContext : DbContext
 {
@@ -45,7 +44,8 @@ public class ApiDbContext : DbContext
      //                                                                                      Properties                                                                                               !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     public DbSet<Person> PersonTable { get; set; }
+     public DbSet<Todo> TodoTable { get; set; }
+     public DbSet<User> UserTable { get; set; }
 
 
 
@@ -110,7 +110,7 @@ public class ApiDbContext : DbContext
      //                                                                                   Synchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Configuration de l'accès aux bases de données -------------------------------------------------------------------------------------------------------------------------------------------------
+     // Configuration de l'accès aux bases de données -----------------------------------------------------------------------------------------------------------------------------------------------
      //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
      //{
      //     // SqlLite
@@ -129,14 +129,33 @@ public class ApiDbContext : DbContext
      // Création du modèle ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
      protected override void OnModelCreating(ModelBuilder modelBuilder)
      {
-          modelBuilder.Entity<Person>(c =>
+          modelBuilder.Entity<Todo>(td =>
           {
-               c.ToTable("Personnes");
-               c.Property(p => p.FirstName).HasMaxLength(256);
-               c.Property(p => p.LastName).HasMaxLength(256);
-               //c.Ignore(p => p.Birthday);
+               td.ToTable("TodoTable");
+               td.HasKey(td => td.Id);
+
+               td.Property(t => t.Title).HasMaxLength(1024);
+
+               td.HasOne(o => o.User)
+                    .WithMany(u => u.TodoTable).HasForeignKey(p => p.UserId)                        // Relation un-à-plusieurs entre Todo et User, avec UserId comme clé étrangère dans Todo
+                    .OnDelete(DeleteBehavior.Cascade);                                              // Suppression en cascade pour les Todo liés à un User
           });
           //base.OnModelCreating(modelBuilder);
+
+
+          modelBuilder.Entity<User>(u =>
+          {
+               u.ToTable("UserTable");
+               u.HasKey(t => t.Id);
+
+               u.Property(u => u.Name).HasMaxLength(256);
+               u.Property(u => u.Token).HasMaxLength(16);
+
+               u.HasMany(o => o.TodoTable).withOne(u => u.User).HasForeignKey(u => u.UserId);       // Relation un-à-plusieurs entre User et Todo, avec UserId comme clé étrangère dans Todo
+
+               u.HasIndex(u => u.Token).IsUnique();                                                 // Index unique pour le Token de l'utilisateur
+                    //.OnDelete(DeleteBehavior.Cascade);                                            // Suppression en cascade pour les User liés à un Todo
+          });
      }
 
 
