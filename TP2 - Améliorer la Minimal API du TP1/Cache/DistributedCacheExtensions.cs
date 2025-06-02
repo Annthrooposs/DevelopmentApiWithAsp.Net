@@ -1,13 +1,13 @@
 ﻿
-using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
-using MinimalAPIProfesional.Data.Models;
+using Microsoft.Extensions.Caching.Distributed;
 
 
 
-namespace MinimalAPIProfesional.Data;
+namespace TP2_AméliorerlaMinimalAPIduTP1.Cache;
 
-public class ApiDbContext : DbContext
+public static class DistributedCacheExtensions         // Le mot-clé "static" est une pratique courante pour les classes utilitaires (dont les méthodes d'extension)
 {
 
      // ===============================================================================================================================================================================================
@@ -45,7 +45,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Properties                                                                                               !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     public DbSet<Person> PersonTable { get; set; }
 
 
 
@@ -86,10 +85,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Constructors                                                                                             !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Default constructor ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)     // Remplace "protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)" (voir plus bas) pour rendre la connexion à la base de données configurable depuis l'extérieur et donc dynamique
-     {
-     }
 
 
 
@@ -110,33 +105,45 @@ public class ApiDbContext : DbContext
      //                                                                                   Synchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Configuration de l'accès aux bases de données -------------------------------------------------------------------------------------------------------------------------------------------------
-     //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-     //{
-     //     // SqlLite
-     //     //optionsBuilder.UseSqlite("Filename=api.db");
-
-     //     // Sql Server
-     //     optionsBuilder.UseSqlServer("Data Source = localhost; Initial Catalog = api_d; Trusted_Connection = True; Trust Server Certificate = true; Integrated Security = true; MultipleActiveResultSets = true");
-
-     //     base.OnConfiguring(optionsBuilder);
-     //}
-
-
-
-
-
-     // Création du modèle ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     protected override void OnModelCreating(ModelBuilder modelBuilder)
+     /// <summary>
+     /// Gets a value from the distributed cache and deserializes it to the specified type.    
+     /// </summary>
+     /// <typeparam name="T"></typeparam>
+     /// <param name="cache"></param>
+     /// <param name="key"></param>
+     /// <returns></returns>
+     public static async Task<T?> GetAsync<T>(this IDistributedCache cache, string key) where T : class                                // Le where permet de spécifier que T doit être une classe
      {
-          modelBuilder.Entity<Person>(c =>
+          var json = await cache.GetStringAsync(key);
+
+          if (string.IsNullOrEmpty(json))
           {
-               c.ToTable("Personnes");
-               c.Property(p => p.FirstName).HasMaxLength(256);
-               c.Property(p => p.LastName).HasMaxLength(256);
-               //c.Ignore(p => p.Birthday);
-          });
-          //base.OnModelCreating(modelBuilder);
+               return default;
+          }
+          else
+          {
+               return JsonSerializer.Deserialize<T>(json, new JsonSerializerOptions
+                                                            {
+                                                                 PropertyNameCaseInsensitive = true                                    // L'option "PropertyNameCaseInsensitive" précise que la désérialisation doit être insensible à la casse
+                                                            });
+          }
+     }
+
+
+
+
+     /// <summary>
+     ///  Sets a value to the distributed cache and serializes it to the json type.
+     /// </summary>
+     /// <typeparam name="T"></typeparam>
+     /// <param name="cache"></param>
+     /// <param name="key"></param>
+     /// <param name="value"></param>
+     /// <returns></returns>
+     public static async Task SetAsync<T>(this IDistributedCache cache, string key, T value) where T: class
+     {
+          var json = JsonSerializer.Serialize(value);
+          await cache.SetStringAsync(key, json);
      }
 
 

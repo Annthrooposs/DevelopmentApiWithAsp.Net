@@ -15,7 +15,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Les bases", "Les bases\Les 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP1-PremiereMinimalAPI", "TP1 - Premiere Minimal API\TP1-PremiereMinimalAPI.csproj", "{834EEDB8-62CD-4158-8628-ED4B75F88F98}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP2 - Améliorer la Minimal API du TP1", "TP2 - Améliorer la Minimal API du TP1\TP2 - Améliorer la Minimal API du TP1.csproj", "{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TP2-AméliorerlaMinimalAPIduTP1", "TP2 - Améliorer la Minimal API du TP1\TP2-AméliorerlaMinimalAPIduTP1.csproj", "{2BD5EBED-B676-4357-A3B4-19DCFCEA1473}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

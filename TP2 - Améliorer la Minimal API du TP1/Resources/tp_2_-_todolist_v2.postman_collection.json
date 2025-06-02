@@ -1,0 +1,209 @@
+{
+	"info": {
+		"_postman_id": "83132ba9-2602-4a6a-8a75-96fb62a75937",
+		"name": "TP 2 - TodoList v2",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Create user",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"name\":\"Christophe\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5555/users",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"users"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get All",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "cOQnNykdJo1fiVp5",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5555/todos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get By Id",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "cOQnNykdJo1fiVp5",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5555/todos/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get Actives",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "SS5AekNBYNh24NxM",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5555/todos/active",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos",
+						"active"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Create Todo",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "cOQnNykdJo1fiVp5",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"title\":\"Apprendre ASP.NET WebApi\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5555/todos",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Delete Todo",
+			"request": {
+				"method": "DELETE",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "Gua6pNe5mnSmrV1k",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5555/todos/1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos",
+						"1"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Todo",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "UserToken",
+						"value": "PNzoS4YmWKLyyDgk",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"title\":\"Apprendre ASP.NET WebAPI Minimal\",\r\n    \"startDate\":\"2022-01-12\",\r\n    \"endDate\":\"2023-01-01\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5555/todos/2",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5555",
+					"path": [
+						"todos",
+						"2"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
