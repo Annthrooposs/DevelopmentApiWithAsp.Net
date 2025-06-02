@@ -1,13 +1,11 @@
-﻿
-using Microsoft.EntityFrameworkCore;
+﻿using TP2_AméliorerlaMinimalAPIduTP1.Data.Models;
+using TP2_AméliorerlaMinimalAPIduTP1.DTO;
 
-using MinimalAPIProfesional.Data.Models;
+namespace TP2_AméliorerlaMinimalAPIduTP1.Services;
 
 
 
-namespace MinimalAPIProfesional.Data;
-
-public class ApiDbContext : DbContext
+public class InMemoryTodoService : ITodoService
 {
 
      // ===============================================================================================================================================================================================
@@ -25,6 +23,11 @@ public class ApiDbContext : DbContext
      //                                                                                       Fields                                                                                                  !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
+     private List<Todo> _list = new List<Todo>
+     {
+          new Todo(1, "Apprendre C# par moi-même",     new DateTime(2024, 10,    7)),
+          new Todo(2, "Guérir par les plantes",        new DateTime(2025, 1,    31))
+     };
 
 
 
@@ -45,7 +48,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Properties                                                                                               !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     public DbSet<Person> PersonTable { get; set; }
 
 
 
@@ -86,10 +88,6 @@ public class ApiDbContext : DbContext
      //                                                                                      Constructors                                                                                             !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Default constructor ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     public ApiDbContext(DbContextOptions<ApiDbContext> options) : base(options)     // Remplace "protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)" (voir plus bas) pour rendre la connexion à la base de données configurable depuis l'extérieur et donc dynamique
-     {
-     }
 
 
 
@@ -110,34 +108,17 @@ public class ApiDbContext : DbContext
      //                                                                                   Synchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
-     // Configuration de l'accès aux bases de données -------------------------------------------------------------------------------------------------------------------------------------------------
-     //protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
-     //{
-     //     // SqlLite
-     //     //optionsBuilder.UseSqlite("Filename=api.db");
-
-     //     // Sql Server
-     //     optionsBuilder.UseSqlServer("Data Source = localhost; Initial Catalog = api_d; Trusted_Connection = True; Trust Server Certificate = true; Integrated Security = true; MultipleActiveResultSets = true");
-
-     //     base.OnConfiguring(optionsBuilder);
-     //}
-
-
-
-
-
-     // Création du modèle ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-     protected override void OnModelCreating(ModelBuilder modelBuilder)
-     {
-          modelBuilder.Entity<Person>(c =>
-          {
-               c.ToTable("Personnes");
-               c.Property(p => p.FirstName).HasMaxLength(256);
-               c.Property(p => p.LastName).HasMaxLength(256);
-               //c.Ignore(p => p.Birthday);
-          });
-          //base.OnModelCreating(modelBuilder);
-     }
+     // Permet de transformer l'Output renvoyé en passant d'un Model à un autre manuellement ----------------------------------------------------------------------------------------------------------
+     // Equivalent à l'outil communautaire "AutoMapper" : plus rapide mais moins ~sûr car nous pouvons 'oublier' une transformation -------------------------------------------------------------------
+     //                                     ----------
+     // ATTENTION : il est préférable de faire cette transformation dans le service et non dans le contrôleur, car le service est réutilisable par d'autres contrôleurs (ex : pour les tests unitaires)
+     private TodoOutputDto ToOutputDto(Todo p_dbTodo) => new TodoOutputDto
+               (
+                    p_dbTodo.Id,
+                    p_dbTodo.Title,
+                    p_dbTodo.StartDate,
+                    p_dbTodo.EndDate
+               );
 
 
 
@@ -148,6 +129,95 @@ public class ApiDbContext : DbContext
      //                                                                                  Asynchronous methods                                                                                         !
      //                                                                                                                                                                                               !
      // ===============================================================================================================================================================================================
+
+
+
+
+
+     // ===============================================================================================================================================================================================
+     //                                                                                                                                                                                               !
+     //                                                                                       Endpoints                                                                                               !
+     //                                                                                                                                                                                               !
+     // ===============================================================================================================================================================================================
+     // Utilisée dans un GET --------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public List<TodoOutputDto> GetAll() => _list.ConvertAll(ToOutputDto);
+
+
+
+     public TodoOutputDto? GetById(int p_id)
+     {
+
+          var todo = _list.Find(td => td.Id == p_id);
+          if (todo is not null)
+          {
+               return ToOutputDto(todo);
+          }
+          else
+          {
+               return null;
+          }
+     }
+
+
+
+
+
+
+     // Utilisée dans un POST -------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public TodoOutputDto Add(TodoInputDto p_inputDto)
+     {
+
+          int id = _list.Count > 0 ? _list.Max(a => a.Id) + 1 : 1;                                                                  // On vérifie, grâce à une ternaire, que la liste n'est pas vide avant de chercher le max...sinon nous affectons '1' comme Id du Todo à créer.
+          Todo todo = new Todo(
+                                   id,
+                                   p_inputDto.Title,
+                                   p_inputDto.StartDate ?? DateTime.Now                                                                // On utilise l'opérateur de coalescence nulle pour affecter la date actuelle si StartDate est null (non renseignée par l'utilisateur)                                                           
+                              );
+
+          _list.Add(todo);
+
+          // ou bien (en raccourci)
+          //_list.Add(new Todo(_list.Max(a => a.Id) + 1, p_title));                                                                    // On peut aussi faire en une seule ligne
+
+
+          return ToOutputDto(todo);
+     }
+
+
+
+
+
+
+     // Utilisée dans un UPDATE -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public void Update(int p_id, TodoInputDto p_inputDto)
+     {
+
+          Delete(Id);                                                                                                                // On supprime l'ancien Todo (si il existe) avant d'ajouter le nouveau
+          //_list.Add(p_todo);                                                                                                                // On ajoute le nouveau Todo
+          // ou bien
+          _list.Add(new Todo(p_id, p_inputDto.Title, p_inputDto.StartDate ?? DateTime.Now, p_inputDto.EndDate));                                                   // Avantage de cette méthode, on peut modifier le Todo sans avoir à le supprimer avant.
+     }
+
+
+
+
+
+     // Utilisée dans un DELETE -----------------------------------------------------------------------------------------------------------------------------------------------------------------------
+     public bool Delete(int p_id)
+     {
+
+          var todo = _list.Find(td => td.Id == p_id);
+          if (todo is not null)
+          {
+
+               _list.Remove(todo);
+               return true;
+          }
+          else
+          {
+               return false;
+          }
+     }
 
 
 

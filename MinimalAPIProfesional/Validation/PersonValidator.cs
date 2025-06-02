@@ -1,6 +1,5 @@
 ﻿
 using FluentValidation;
-using MinimalAPIProfesional.Data.Models;
 using MinimalAPIProfesional.DTO;
 
 namespace MinimalAPIProfesional.Validation;

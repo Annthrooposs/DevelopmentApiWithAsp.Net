@@ -1,4 +1,5 @@
-﻿namespace MinimalAPIProfesional.DTO;
+﻿
+namespace MinimalAPIProfesional.DTO;
 
 
 

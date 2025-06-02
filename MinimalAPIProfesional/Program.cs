@@ -243,31 +243,31 @@ app.MapGroup("/person")
 
 
 #region person 1er lot
-////app.MapGet("/person", async (
-////     [FromServices] ApiDbContext context) =>
-////{
+//app.MapGet("/person", async (
+//     [FromServices] ApiDbContext context) =>
+//{
 
-////     List<Person> lp = await context.Persons.ToListAsync();
+//     List<Person> lp = await context.Persons.ToListAsync();
 
-////     return Results.Ok(lp);
-////});
+//     return Results.Ok(lp);
+//});
 #endregion
 
 
 
 #region validations en entrée
-////app.MapGet("/person/{id:int}", async (
-////     [FromRoute]    int            id,
+//app.MapGet("/person/{id:int}", async (
+//     [FromRoute] int id,
 
-////     [FromServices] ApiDbContext   Dbcontext) =>
-////{
+//     [FromServices] ApiDbContext Dbcontext) =>
+//{
 
-////     Person? pers = await Dbcontext.Persons.Where(p => p.Id == id).FirstOrDefaultAsync();
+//     Person? pers = await Dbcontext.Persons.Where(p => p.Id == id).FirstOrDefaultAsync();
 
-////     if (pers is null) return Results.NotFound();
+//     if (pers is null) return Results.NotFound();
 
-////     return Results.Ok(pers);
-////});
+//     return Results.Ok(pers);
+//});
 #endregion
 
 
