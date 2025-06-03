@@ -3,7 +3,7 @@ using System.Text;
 
 namespace Mod3ASPNET
 {
-     public class HtmlResult : IResult
+     public class HtmlResult : IResult // IResult est une interface de Microsoft.AspNetCore.Http, qui permet de retourner un résultat HTTP dans ASP.NET Core. Ici, nous le personalisons sous forme du type 'HtmlResult' pour retourner du HTML.
      {
           // ==================================================================================================================================================
           //                                                                                                                                                  !
@@ -11,7 +11,7 @@ namespace Mod3ASPNET
           //                                                                                                                                                  !
           // ==================================================================================================================================================
           // Create fields ------------------------------------------------------------------------------------------------------------------------------------
-          private string _html;
+          private readonly string _html;
 
 
 
@@ -91,7 +91,7 @@ namespace Mod3ASPNET
           public async Task ExecuteAsync(HttpContext httpContext)
           {
                httpContext.Response.ContentType        = MediaTypeNames.Text.Html;                                                                              // retourne "text/html". Pour connaître les différents 'ContentType' -> Google : 'contenttype html'
-               httpContext.Response.ContentLength      = Encoding.UTF8.GetByteCount(_html);
+               httpContext.Response.ContentLength      = Encoding.UTF8.GetByteCount(_html);                                                                     // retourne la taille du contenu HTML en octets afin que le navigateur soit plus performant. Pour connaître les différents 'Encoding' -> Google : 'encoding html' 
 
                await httpContext.Response.WriteAsync(_html);
           }

@@ -6,8 +6,8 @@ using Microsoft.Extensions.Options;
 using Swashbuckle.AspNetCore.SwaggerGen;
 
 using Mod3ASPNET;
-using Mod3ASPNET.Filters;
 using Mod3ASPNET.Doc;
+using Mod3ASPNET.Filters;
 
 
 
@@ -72,18 +72,18 @@ var versionSet = app.NewApiVersionSet()                                         
 
 
 
-//// ====================================================================================================================================================================================================
-////                                                                                                                                                                                                    !
-////                                                               Appel des Middlewares personalisés (app.Use... ou app.CustomMiddleware(...))                                                         !
-////                                                                                                                                                                                                    !
-////                              Note : un Middleware est toujours exécuté par Asp.Net AVANT les Endpoints, ce qui permet d'intercepter les requêtes                                                   !
-////                              et de les travailler en amont puis en aval, si on le souhaite, de la production de la réponse à la requête                                                            !
-////                                                                                                                                                                                                    !
-//// ====================================================================================================================================================================================================
+// ====================================================================================================================================================================================================
+//                                                                                                                                                                                                    !
+//                                                               Appel des Middlewares personalisés (app.Use... ou app.CustomMiddleware(...))                                                         !
+//                                                                                                                                                                                                    !
+//                              Note : un Middleware est toujours exécuté par Asp.Net AVANT les Endpoints, ce qui permet d'intercepter les requêtes                                                   !
+//                              et de les travailler en amont puis en aval, si on le souhaite, de la production de la réponse à la requête                                                            !
+//                                                                                                                                                                                                    !
+// ====================================================================================================================================================================================================
 //app.Use(async (HttpContext http, RequestDelegate next) =>
 //{
-//     //await http.Response.WriteAsync("Mon Middleware");
-//     await next(http);                                                                                                                                                                                // Appel à une instance de RequestDelegate 
+//     await http.Response.WriteAsync("Mon Middleware");
+//     //await next(http);                                                                                                                                                                                // Appel à une instance de RequestDelegate 
 //});
 
 
@@ -93,6 +93,26 @@ var versionSet = app.NewApiVersionSet()                                         
 //     await http.Response.WriteAsync("Mon Middleware 2");
 //     //await next(http);
 //});
+
+
+
+
+
+// Génération d'un fichier swagger.json et de l'interface graphique exposant ce fichier pour chaque différente version --------------------------------------------------------------------------------
+if (app.Environment.IsDevelopment())
+{
+     app.UseSwagger();
+     app.UseSwaggerUI(conf =>
+     {
+          var versions = app.DescribeApiVersions();
+
+          foreach (var item in versions)
+          {
+               var url = $"/swagger/{item.GroupName}/swagger.json";
+               conf.SwaggerEndpoint(url, "Mon API " + item.GroupName);
+          }
+     });
+}
 
 
 
@@ -110,24 +130,37 @@ var versionSet = app.NewApiVersionSet()                                         
 
 
 
+// Attention : le comportement de ces deux api, partageant le même "/info" va casser l'interprétation de Swagger
+//app.MapGet("/info", () => "Info v1")
+//     .WithApiVersionSet(versionSet)
+//     .MapToApiVersion(new Asp.Versioning.ApiVersion(1.0));                                                                                                                                              // le numéro de version est fourni dans la requête sous la forme "?api-version=1.0" après la requête "http://localhost:5555/info"
+//                                                                                                                                                                                                        // Le chemin est donc le même, nous ajoutons simplement une clef dans la requête indiquant la version à utiliser
 
-app.MapGet("{version:apiVersion}/info", () => "Info v1")
+//app.MapGet("/info", () => "Info v2")
+//     .WithApiVersionSet(versionSet)
+//     .MapToApiVersion(new Asp.Versioning.ApiVersion(2.0));
+
+
+
+// Ces deux versions de l'API permettent à Swagger de fonctionner normalement (la solution est d'avoir le numéro de version dans l'Url)
+app.MapGet("v{version:apiVersion}/info", () => "Info v1")
+     .AddEndpointFilter<LoggingFilter>()
      .WithApiVersionSet(versionSet)
      .MapToApiVersion(new Asp.Versioning.ApiVersion(1.0));                                                                                                                                              // le numéro de version est fourni dans la requête sous la forme "?api-version=1.0" après la requête "http://localhost:5555/info"
                                                                                                                                                                                                         // Le chemin est donc le même, nous ajoutons simplement une clef dans la requête indiquant la version à utiliser
 
 app.MapGet("v{version:apiVersion}/info", () => "Info v2")
+     .AddEndpointFilter<LoggingFilter>()
      .WithApiVersionSet(versionSet)
      .MapToApiVersion(new Asp.Versioning.ApiVersion(2.0));                                                                                                                                              // le numéro de version est fourni dans la requête sous la forme "?api-version=2.0" après la requête "http://localhost:5555/info"
                                                                                                                                                                                                         // Le chemin est donc le même, nous ajoutons simplement une clef dans la requête indiquant la version à utiliser
 
 
-
-// Personaliser les résultats d'API en créant nos propres types de retour
+// Personaliser les résultats d'API en créant nos propres types de retour -----------------------------------------------------------------------------------------------------------------------------
 app.MapGet("v{version:apiVersion}/hello-html", () =>
      {
 
-          // "HtmlResult" est un type de retour que nous avons créé par nos propres soins sous forme de classe pour retourner du texte devant être interprété comme du HTML et non comme du texte brut !
+          // "HtmlResult" est un type de retour que nous avons créé par nos propres soins sous forme de classe (HtmlResult.cs) pour retourner du texte devant être interprété comme du HTML et non comme du texte brut !
           return new HtmlResult("""
                < html>
                     <body>
@@ -167,8 +200,6 @@ app.MapPost("v{version:apiVersion}/file", async (HttpContext httpContext) =>
           var fileExtension = httpContext.Request.ContentType;                                                                                                                                          // Si nous ne connaissons pas le nom du fichier et son extension, il est nécessaire d'aller voir dans la rubrique "Request.Body. ContentType" du Body"
                                                                                                                                                                                                         // Nous obtenons ainsi dans notre cas : "image/png". Il ne reste plus qu'à extraire l'extension pour sauvegarder le fichier en lui donnant
                                                                                                                                                                                                         // le nom que nous souhaitons auquels nous collons l'extension récupérée
-                                                                                                                                                                                                        // var x = httpContext.Request.Content.Headers.GetValues("Content-Type").First();         // Quelqu'un a proposé !?!
-
 
           return Results.Ok();
      })
@@ -240,33 +271,9 @@ app.MapPost("v{version:apiVersion}/file", async (HttpContext httpContext) =>
 
 //          return result;
 //     })
+//.AddEndpointFilter<LoggingFilter>()
 //.WithApiVersionSet(versionSet)
 //.MapToApiVersion(new Asp.Versioning.ApiVersion(1.0));
-
-
-
-
-
-// ====================================================================================================================================================================================================
-//                                                                                                                                                                                                    !
-//                                        Génération du fichier swagger.json et de l'interface graphique exposant le fichier avec les différentes versions                                            !
-//                                                                                                                                                                                                    !
-// ====================================================================================================================================================================================================
-if (app.Environment.IsDevelopment())
-{
-     app.UseSwagger();
-     app.UseSwaggerUI(conf =>
-     {
-          var versions = app.DescribeApiVersions();
-
-          foreach (var item in versions)
-          {
-               var url = $"/swagger/{item.GroupName}/swagger.json";
-               conf.SwaggerEndpoint(url, "Mon API " + item.GroupName);
-          }
-     });
-}
-
 
 
 
